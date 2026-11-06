@@ -1,4 +1,5 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
+import { InstallCard } from '../components/InstallCard';
 import { Icon } from '../components/Icon';
 import { APP_NAME, LEMA } from '../lib/config';
 import { addDays, formatLong, formatRange, isValidISODate, nextMonday, weekday, type ISODate } from '../lib/dates';
@@ -8,7 +9,7 @@ import { actions } from '../lib/store';
 
 type Choice = 'today' | 'monday' | 'custom';
 
-export function Onboarding({ today }: { today: ISODate }) {
+export function Onboarding({ today, updateBanner }: { today: ISODate; updateBanner?: ReactNode }) {
   const isMonday = weekday(today) === 1;
   const monday = nextMonday(today);
   const [choice, setChoice] = useState<Choice>(isMonday ? 'today' : 'monday');
@@ -30,6 +31,7 @@ export function Onboarding({ today }: { today: ISODate }) {
 
   return (
     <main className="onb">
+      {updateBanner}
       <div>
         <img className="onb-logo" src={`${import.meta.env.BASE_URL}icons/icon-192.png`} alt="" width={68} height={68} />
       </div>
@@ -37,6 +39,8 @@ export function Onboarding({ today }: { today: ISODate }) {
         <h1>{APP_NAME}</h1>
         <p className="lema">{LEMA}</p>
       </div>
+
+      <InstallCard appName="Val Q" />
 
       <ul className="pillars">
         <li>

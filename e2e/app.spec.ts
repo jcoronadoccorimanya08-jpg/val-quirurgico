@@ -57,3 +57,36 @@ test('cambia el tema y genera el reporte', async ({ page }) => {
   await page.getByText('Ver el reporte').click();
   await expect(page.locator('.report-preview')).toContainText('REPORTE · Val quirúrgico · día 1/90');
 });
+
+test('la primera pantalla ya funciona sin internet y explica cómo instalar', async ({ page }) => {
+  await page.goto('./');
+  await expect(page.getByRole('region', { name: 'Instalar la app' })).toContainText('«Instalar aplicación»');
+  await expect
+    .poll(() => page.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).length), { timeout: 15_000 })
+    .toBeGreaterThan(0);
+});
+
+test('cuando Chrome ofrece instalar, aparece el botón Instalar', async ({ page }) => {
+  await page.goto('./');
+  await page.evaluate(() => {
+    const e = new Event('beforeinstallprompt') as Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
+    (window as unknown as { __prompted: boolean }).__prompted = false;
+    e.prompt = async () => {
+      (window as unknown as { __prompted: boolean }).__prompted = true;
+    };
+    e.userChoice = Promise.resolve({ outcome: 'accepted' });
+    window.dispatchEvent(e);
+  });
+  const card = page.getByRole('region', { name: 'Instalar la app' });
+  await card.getByRole('button', { name: 'Instalar' }).click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __prompted: boolean }).__prompted)).toBe(true);
+});
+
+test('si elegiste el lunes, puedes empezar hoy igual', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-11-06T20:00:00-04:00') }); // viernes
+  await page.goto('./');
+  await page.getByRole('button', { name: 'Empezar mi ciclo' }).click(); // por defecto: el lunes
+  await expect(page.getByRole('heading', { name: 'Tu ciclo está por empezar' })).toBeVisible();
+  await page.getByRole('button', { name: 'Prefiero empezar hoy' }).click();
+  await expect(page.getByRole('heading', { name: 'Día 1 de 90' })).toBeVisible();
+});

@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { BottomNav, ToastHost, type Tab } from './components/ui';
-import { UpdateBanner } from './components/UpdateBanner';
+import { UpdateBanner, useServiceWorker } from './components/UpdateBanner';
 import { canShareFiles, downloadBackup, shareBackup } from './lib/backup';
 import { allSegmentProgress, lastPlayableDay } from './lib/engine';
 import { toast } from './lib/feedback';
@@ -26,6 +26,7 @@ function useTheme(theme: Theme) {
 }
 
 export function App() {
+  const sw = useServiceWorker();
   const ready = useStoreReady();
   const state = useAppState();
   const today = useToday();
@@ -53,7 +54,7 @@ export function App() {
   if (!state.settings) {
     return (
       <>
-        <Onboarding today={today} />
+        <Onboarding today={today} updateBanner={<UpdateBanner needRefresh={sw.needRefresh} onUpdate={sw.update} />} />
         <ToastHost />
       </>
     );
@@ -81,7 +82,7 @@ export function App() {
   return (
     <>
       <div className="app">
-        <UpdateBanner />
+        <UpdateBanner needRefresh={sw.needRefresh} onUpdate={sw.update} />
         {tab === 'hoy' && (
           <TodayScreen
             state={state}

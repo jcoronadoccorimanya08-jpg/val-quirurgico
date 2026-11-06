@@ -1,4 +1,5 @@
 import { Icon } from '../components/Icon';
+import { InstallCard } from '../components/InstallCard';
 import { SectionTitle } from '../components/ui';
 import { WeekCard } from '../components/WeekCard';
 import { APP_NAME, LEMA } from '../lib/config';
@@ -106,6 +107,8 @@ export function TodayScreen({ state, today, selected, onSelect, onGoRewards, onB
           <i style={{ width: `${(stats.dayNumber / s.cycleLength) * 100}%` }} />
         </div>
       )}
+
+      <InstallCard appName="Val Q" dismissible />
 
       {backupDue && (
         <div className="banner">
@@ -251,6 +254,17 @@ function BeforeStart({ s, today, onGoRewards }: { s: Settings; today: ISODate; o
       </p>
       <button type="button" className="btn primary block" style={{ marginTop: 14 }} onClick={onGoRewards}>
         <Icon name="gift" size={18} /> Definir mis premios
+      </button>
+      <button
+        type="button"
+        className="btn block"
+        style={{ marginTop: 8 }}
+        onClick={() => {
+          actions.setStartDate(today);
+          toast('Tu ciclo empieza hoy.', 'success');
+        }}
+      >
+        <Icon name="calendar" size={18} /> Prefiero empezar hoy
       </button>
     </section>
   );
