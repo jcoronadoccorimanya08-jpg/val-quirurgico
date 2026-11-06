@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#0a0c10">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Val Q">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Val quirúrgico</title>
+<style>
+  :root{--bg:#0a0c10;--card:#14181f;--card2:#1b212a;--line:#242c37;--txt:#e8edf4;
+        --dim:#8a97a8;--dim2:#5e6b7d;--ok:#2ee6a8;--warn:#ffb020;--accent:#5ab6ff}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg)}
+  body{color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+       padding:env(safe-area-inset-top) 14px calc(env(safe-area-inset-bottom) + 90px);
+       max-width:520px;margin:0 auto;-webkit-font-smoothing:antialiased;overscroll-behavior-y:contain}
+  .top{padding-top:16px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  h1{font-size:19px;margin:0;letter-spacing:-.3px}
+  .sub{color:var(--dim);font-size:12px;margin-top:3px}
+  .lema{color:var(--accent);font-size:10.5px;text-transform:uppercase;letter-spacing:1.4px;margin-top:3px}
+  .daybox{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 11px;text-align:center;flex-shrink:0}
+  .daybox b{display:block;font-size:22px;line-height:1;font-variant-numeric:tabular-nums}
+  .daybox span{font-size:9.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.8px}
+  .bar{height:5px;background:var(--card2);border-radius:99px;overflow:hidden;margin:11px 0 4px}
+  .bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--ok));border-radius:99px;transition:width .4s}
+  .sec{font-size:10.5px;text-transform:uppercase;letter-spacing:1.3px;color:var(--dim2);margin:22px 0 9px;font-weight:600}
+  .nav{position:fixed;bottom:0;left:0;right:0;background:rgba(10,12,16,.94);backdrop-filter:blur(14px);
+       border-top:1px solid var(--line);display:flex;padding:6px 0 calc(env(safe-area-inset-bottom) + 6px);z-index:50}
+  .nav button{flex:1;background:none;border:none;color:var(--dim2);font-size:10px;padding:7px 0;font-family:inherit;
+              display:flex;flex-direction:column;align-items:center;gap:3px;letter-spacing:.4px}
+  .nav button b{font-size:19px;line-height:1;font-weight:400}
+  .nav button.on{color:var(--ok)}
+  .core{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:13px;margin-bottom:10px;
+        display:flex;align-items:center;gap:12px;transition:.18s;user-select:none}
+  .core:active{transform:scale(.985)}
+  .core.on{border-color:rgba(46,230,168,.5);background:linear-gradient(135deg,rgba(46,230,168,.09),var(--card))}
+  .tick{width:42px;height:42px;border-radius:12px;border:2px solid var(--line);flex-shrink:0;display:grid;place-items:center;
+        font-size:20px;color:transparent;background:var(--card2);transition:.18s}
+  .core.on .tick{background:var(--ok);border-color:var(--ok);color:#05251a}
+  .info{flex:1;min-width:0}
+  .nm{font-size:15px;font-weight:600;line-height:1.25}
+  .mn{font-size:11px;color:var(--dim);margin-top:3px;line-height:1.35}
+  .st{text-align:right;flex-shrink:0}
+  .st b{display:block;font-size:24px;line-height:1;font-variant-numeric:tabular-nums}
+  .st span{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.7px}
+  .rec{font-size:9.5px;color:var(--dim2);margin-top:4px}
+  .steps{display:flex;gap:6px;margin-top:9px}
+  .steps div{flex:1;text-align:center;font-size:10px;padding:4px 0;border-radius:7px;background:var(--card2);
+             color:var(--dim2);border:1px solid transparent;font-variant-numeric:tabular-nums}
+  .steps div.hit{background:rgba(46,230,168,.14);color:var(--ok);border-color:rgba(46,230,168,.35);font-weight:700}
+  .list{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:3px 13px}
+  .ex{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--line);user-select:none}
+  .ex:last-child{border-bottom:none}
+  .exb{width:22px;height:22px;border-radius:7px;border:2px solid var(--line);background:var(--card2);flex-shrink:0;
+       display:grid;place-items:center;font-size:12px;color:transparent;transition:.15s}
+  .ex.on .exb{background:var(--accent);border-color:var(--accent);color:#04121f}
+  .exn{flex:1;font-size:13.5px}
+  .ex.on .exn{color:var(--dim)}
+  .exs{font-size:10.5px;color:var(--dim2);font-variant-numeric:tabular-nums}
+  .grid{display:grid;grid-template-columns:repeat(14,1fr);gap:4px}
+  .cell{aspect-ratio:1;border-radius:3.5px}
+  .d0{background:#1b212a}.d1{background:rgba(46,230,168,.28)}
+  .d2{background:rgba(46,230,168,.58)}.d3{background:var(--ok)}
+  .fut{background:#111620;opacity:.45}
+  .today{box-shadow:0 0 0 2px var(--accent)}
+  .legend{display:flex;gap:6px;align-items:center;justify-content:flex-end;font-size:9.5px;color:var(--dim2);margin-top:7px}
+  .legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+  .stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;margin-top:11px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 8px;text-align:center}
+  .stat b{display:block;font-size:19px;font-variant-numeric:tabular-nums}
+  .stat span{font-size:9.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.6px}
+  .btn{width:100%;background:var(--card);border:1px solid var(--line);color:var(--txt);border-radius:12px;
+       padding:14px;font-size:14px;font-family:inherit;margin-bottom:9px;text-align:left}
+  .btn:active{background:var(--card2)}
+  .btn.go{background:var(--ok);color:#05251a;border-color:var(--ok);font-weight:700;text-align:center}
+  .note{font-size:11px;color:var(--dim2);text-align:center;margin-top:18px;line-height:1.6}
+  .page{display:none}.page.on{display:block}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:96px;background:var(--ok);color:#05251a;
+         padding:11px 18px;border-radius:99px;font-size:13px;font-weight:700;z-index:99;opacity:0;
+         transition:.25s;pointer-events:none;white-space:nowrap}
+  .toast.show{opacity:1}
+  textarea{width:100%;background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:10px;
+           padding:10px;font-size:11px;font-family:ui-monospace,monospace;min-height:100px;margin-bottom:9px}
+  .hist{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:8px;
+        display:flex;justify-content:space-between;align-items:center}
+  .hist .hd{font-size:13px}.hist .hc{font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
+  .pill{display:inline-block;width:9px;height:9px;border-radius:50%;margin-left:4px}
+</style>
+</head>
+<body>
+
+<!-- ============ HOY ============ -->
+<div class="page on" id="p-hoy">
+  <div class="top">
+    <div>
+      <h1>Val quirúrgico</h1>
+      <div class="sub" id="fecha">—</div>
+      <div class="lema">La presión es un privilegio</div>
+    </div>
+    <div class="daybox"><b id="dnum">—</b><span>de 90</span></div>
+  </div>
+  <div class="bar"><i id="prog"></i></div>
+  <div class="sec">Las 3 rachas — núcleo</div>
+  <div id="cores"></div>
+  <div class="sec">Lo demás de hoy — sin racha</div>
+  <div class="list" id="extras"></div>
+  <div class="note">Márcalo cada noche, antes de dormir.</div>
+</div>
+
+<!-- ============ AVANCE ============ -->
+<div class="page" id="p-avance">
+  <div class="top"><div><h1>Avance</h1><div class="sub">Ciclo 21/09 → 19/12/2026</div></div></div>
+  <div class="sec">Últimas 8 semanas</div>
+  <div class="grid" id="heat"></div>
+  <div class="legend">0 <i class="d0"></i><i class="d1"></i><i class="d2"></i><i class="d3"></i> 3</div>
+  <div class="stats">
+    <div class="stat"><b id="s1">—</b><span>Días 3/3</span></div>
+    <div class="stat"><b id="s2">—</b><span>% cumplido</span></div>
+    <div class="stat"><b id="s3">—</b><span>Faltan</span></div>
+  </div>
+  <div class="sec">Por hábito</div>
+  <div id="porhab"></div>
+  <div class="sec">Últimos 14 días</div>
+  <div id="hist"></div>
+</div>
+
+<!-- ============ AJUSTES ============ -->
+<div class="page" id="p-mas">
+  <div class="top"><div><h1>Ajustes</h1><div class="sub">Respaldo y reporte</div></div></div>
+  <div class="sec">Para tu entrenador</div>
+  <button class="btn go" id="b-rep">Copiar reporte para Claude</button>
+  <div class="note" style="text-align:left;margin:0 0 6px">Pégalo en el chat y te digo en qué estás fallando.</div>
+  <div class="sec">Respaldo</div>
+  <button class="btn" id="b-exp">⬇︎ Descargar respaldo (.json)</button>
+  <button class="btn" id="b-imp">⬆︎ Restaurar desde respaldo</button>
+  <input type="file" id="f-imp" accept=".json" style="display:none">
+  <div class="sec">Instalar</div>
+  <div class="note" style="text-align:left">
+    <b>Android:</b> menú ⋮ del navegador → «Instalar aplicación».<br>
+    <b>iPhone:</b> botón Compartir → «Añadir a pantalla de inicio».<br><br>
+    Una vez instalada funciona sin internet y tus datos quedan en el celular.
+  </div>
+  <div class="note" id="ver"></div>
+</div>
+
+<nav class="nav">
+  <button class="on" data-p="hoy"><b>◉</b>Hoy</button>
+  <button data-p="avance"><b>▤</b>Avance</button>
+  <button data-p="mas"><b>⚙</b>Ajustes</button>
+</nav>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+var START="2026-09-21", END="2026-12-19", TOTAL=90, KEY="valq.log.v1";
+
+var CORE=[
+  {k:"sueno",  n:"Dormir 23:00 – 6:00", m:"Día malo: antes de 00:00 y 7 h de sueño."},
+  {k:"gym",    n:"Gym",                 m:"Día malo: 20 min, aunque sea lo básico."},
+  {k:"estudio",n:"Bloque profundo sin celular", m:"Día malo: un bloque de 25 min."}
+];
+var EXTRA=[
+  {k:"anki",n:"Anki (10–20 min)"},{k:"atrium",n:"Un caso en Atrium"},
+  {k:"ajedrez",n:"Una partida de ajedrez"},{k:"sudoku",n:"Un sudoku"},
+  {k:"sinapsis",n:"Sinapsis — 3 ejercicios de ojos"},{k:"protocolo",n:"Protocolo de la mañana"},
+  {k:"suenos",n:"Bitácora de sueños"},{k:"negocio",n:"Bloque de negocio"},{k:"diario",n:"Diario del día"}
+];
+var STEPS=[3,5,15,20,30];
+
+var log={};
+try{ log=JSON.parse(localStorage.getItem(KEY)||"{}")||{}; }catch(e){ log={}; }
+function persist(){ try{ localStorage.setItem(KEY,JSON.stringify(log)); }catch(e){ toast("No se pudo guardar"); } }
+
+function iso(d){return d.toISOString().slice(0,10);}
+function P(s){var p=s.split("-");return new Date(Date.UTC(+p[0],+p[1]-1,+p[2]));}
+function A(d,n){var x=new Date(d.getTime());x.setUTCDate(x.getUTCDate()+n);return x;}
+function hoy(){var n=new Date();return iso(new Date(Date.UTC(n.getFullYear(),n.getMonth(),n.getDate())));}
+function D(k){var d=log[k];return d&&typeof d==="object"?d:{};}
+function C(k,h){var d=D(k);return !!(d.core&&d.core[h]);}
+function E(k,h){var d=D(k);return !!(d.extra&&d.extra[h]);}
+function cc(k){var n=0;for(var i=0;i<CORE.length;i++)if(C(k,CORE[i].k))n++;return n;}
+
+function racha(h,get){
+  var c=0,d=P(hoy());
+  if(!get(iso(d),h)) d=A(d,-1);
+  while(iso(d)>=START){ if(get(iso(d),h)){c++;d=A(d,-1);} else break; }
+  return c;
+}
+function recordDe(h){
+  var best=0,c=0,d=P(START),e=P(hoy());
+  while(d<=e){ if(C(iso(d),h)){c++;if(c>best)best=c;}else c=0; d=A(d,1); }
+  return best;
+}
+function toast(t){var el=document.getElementById("toast");el.textContent=t;el.classList.add("show");
+  clearTimeout(el._t);el._t=setTimeout(function(){el.classList.remove("show");},1700);}
+
+function tocar(tipo,h){
+  var k=hoy(), d=log[k]||(log[k]={});
+  if(!d[tipo]) d[tipo]={};
+  d[tipo][h]=!d[tipo][h];
+  persist();
+  if(tipo==="core"&&d.core[h]){
+    var s=racha(h,C);
+    if(STEPS.indexOf(s)>=0) toast("Escalón de "+s+" días. Bien.");
+    else if(cc(k)===3) toast("Día completo 3/3.");
+  }
+  render();
+}
+
+function render(){
+  var k=hoy(), t=P(k);
+  var dias=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+  var mes=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+  document.getElementById("fecha").textContent=dias[t.getUTCDay()]+" "+t.getUTCDate()+" de "+mes[t.getUTCMonth()];
+  var n=Math.max(0,Math.min(TOTAL,Math.floor((t-P(START))/864e5)+1));
+  document.getElementById("dnum").textContent=n;
+  document.getElementById("prog").style.width=(n/TOTAL*100)+"%";
+
+  var h="";
+  CORE.forEach(function(x){
+    var on=C(k,x.k), s=racha(x.k,C), r=recordDe(x.k);
+    h+='<div class="core'+(on?" on":"")+'" data-core="'+x.k+'"><div class="tick">✓</div>'+
+       '<div class="info"><div class="nm">'+x.n+'</div><div class="mn">'+x.m+'</div><div class="steps">'+
+       STEPS.map(function(v){return '<div class="'+(s>=v?"hit":"")+'">'+v+'</div>';}).join("")+
+       '</div></div><div class="st"><b>'+s+'</b><span>racha</span><div class="rec">récord '+r+'</div></div></div>';
+  });
+  document.getElementById("cores").innerHTML=h;
+
+  h="";
+  EXTRA.forEach(function(x){
+    var on=E(k,x.k), s=racha(x.k,E);
+    h+='<div class="ex'+(on?" on":"")+'" data-extra="'+x.k+'"><div class="exb">✓</div>'+
+       '<div class="exn">'+x.n+'</div><div class="exs">'+(s>0?s+"d":"")+'</div></div>';
+  });
+  document.getElementById("extras").innerHTML=h;
+
+  var cells="",d=A(t,-55);
+  for(var i=0;i<56;i++){
+    var kk=iso(d),c=cc(kk),cl="cell ";
+    cl+=(kk>k||kk<START)?"fut":"d"+c;
+    if(kk===k)cl+=" today";
+    cells+='<div class="'+cl+'"></div>'; d=A(d,1);
+  }
+  document.getElementById("heat").innerHTML=cells;
+
+  var full=0,pts=0,pos=0,cur=P(START),lim=t<P(END)?t:P(END);
+  while(cur<=lim){ var c2=cc(iso(cur)); if(c2===3)full++; pts+=c2; pos+=3; cur=A(cur,1); }
+  document.getElementById("s1").textContent=full;
+  document.getElementById("s2").textContent=pos?Math.round(pts/pos*100)+"%":"0%";
+  var left=Math.floor((P(END)-t)/864e5);
+  document.getElementById("s3").textContent=(left>0?left:0)+"d";
+
+  h="";
+  CORE.forEach(function(x){
+    var tot=0,cur2=P(START);
+    while(cur2<=lim){ if(C(iso(cur2),x.k))tot++; cur2=A(cur2,1); }
+    var pc=pos/3?Math.round(tot/(pos/3)*100):0;
+    h+='<div class="hist"><div class="hd">'+x.n+'</div><div class="hc">'+tot+' días · '+pc+'%</div></div>';
+  });
+  document.getElementById("porhab").innerHTML=h;
+
+  h=""; d=A(t,-13);
+  for(i=0;i<14;i++){
+    var kk2=iso(d), c3=cc(kk2);
+    var col=c3===3?"var(--ok)":c3===0?"#2a3240":"var(--warn)";
+    h+='<div class="hist"><div class="hd">'+kk2.slice(8)+"/"+kk2.slice(5,7)+
+       '</div><div class="hc">'+c3+'/3 <span class="pill" style="background:'+col+'"></span></div></div>';
+    d=A(d,1);
+  }
+  document.getElementById("hist").innerHTML=h;
+}
+
+function reporte(){
+  var k=hoy(),t=P(k),L=[];
+  L.push("REPORTE — Val quirúrgico | día "+Math.floor((t-P(START))/864e5+1)+"/90 | "+k);
+  CORE.forEach(function(x){ L.push(x.n+": racha "+racha(x.k,C)+" | récord "+recordDe(x.k)); });
+  var lim=t<P(END)?t:P(END),cur=A(t,-13),lin=[];
+  while(cur<=lim){ var kk=iso(cur); lin.push(kk.slice(5)+" "+cc(kk)+"/3"); cur=A(cur,1); }
+  L.push("Últimos 14 días: "+lin.join(", "));
+  var ex=[]; EXTRA.forEach(function(x){ var s=racha(x.k,E); if(s>0) ex.push(x.n+" "+s+"d"); });
+  if(ex.length) L.push("Secundarios activos: "+ex.join(", "));
+  return L.join("\n");
+}
+
+document.addEventListener("click",function(e){
+  var a=e.target.closest("[data-core]"); if(a){ tocar("core",a.getAttribute("data-core")); return; }
+  var b=e.target.closest("[data-extra]"); if(b){ tocar("extra",b.getAttribute("data-extra")); return; }
+  var p=e.target.closest("[data-p]");
+  if(p){
+    document.querySelectorAll(".nav button").forEach(function(x){x.classList.remove("on");});
+    p.classList.add("on");
+    document.querySelectorAll(".page").forEach(function(x){x.classList.remove("on");});
+    document.getElementById("p-"+p.getAttribute("data-p")).classList.add("on");
+    window.scrollTo(0,0);
+  }
+});
+
+document.getElementById("b-rep").onclick=function(){
+  var txt=reporte();
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(function(){toast("Reporte copiado");},function(){alert(txt);});
+  } else alert(txt);
+};
+document.getElementById("b-exp").onclick=async function(){
+  var txt=JSON.stringify(log,null,1), nom="val-quirurgico-"+hoy()+".json";
+  try{
+    if(window.claude&&window.claude.use){
+      var dl=await window.claude.use("downloads");
+      if(dl&&dl.save){ await dl.save(new Blob([txt],{type:"application/json"}),nom); toast("Respaldo descargado"); return; }
+    }
+  }catch(e){}
+  try{
+    var a=document.createElement("a");
+    a.href=URL.createObjectURL(new Blob([txt],{type:"application/json"}));
+    a.download=nom; a.click();
+    setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
+    toast("Respaldo descargado");
+  }catch(e2){ toast("No se pudo descargar"); }
+};
+document.getElementById("b-imp").onclick=function(){document.getElementById("f-imp").click();};
+document.getElementById("f-imp").onchange=function(ev){
+  var f=ev.target.files[0]; if(!f) return;
+  var r=new FileReader();
+  r.onload=function(){
+    try{
+      var o=JSON.parse(r.result);
+      if(o&&typeof o==="object"){ Object.keys(o).forEach(function(k){ log[k]=o[k]; }); persist(); render(); toast("Respaldo restaurado"); }
+    }catch(e){ toast("Archivo inválido"); }
+  };
+  r.readAsText(f);
+};
+
+render();
+document.getElementById("ver").textContent="v1 · "+Object.keys(log).length+" días registrados";
+
+if("serviceWorker" in navigator){
+  window.addEventListener("load",function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });
+}
+})();
+</script>
+</body>
+</html>
