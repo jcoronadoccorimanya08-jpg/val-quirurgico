@@ -14,7 +14,7 @@ import type { DayLog, Habit, HabitKind, Settings } from './types';
 
 export type Days = Record<ISODate, DayLog>;
 type Cycle = Pick<Settings, 'startDate' | 'cycleLength'>;
-type Scoring = Pick<Settings, 'core' | 'extras' | 'coreWeight' | 'dayGoal' | 'exam' | 'trip'>;
+type Scoring = Pick<Settings, 'core' | 'extras' | 'coreWeight' | 'dayGoal' | 'exam' | 'trip'> & { vacation?: Habit[] };
 
 const EPS = 1e-9;
 
@@ -105,11 +105,14 @@ export function isTripDay(s: Pick<Settings, 'trip'>, date: ISODate): boolean {
   return Boolean(s.trip && date >= s.trip.from && date <= s.trip.to);
 }
 
-/** Hábitos que cuentan ese día: en viaje, los elegidos; en exámenes, solo el núcleo; si no, todos. */
+/**
+ * Hábitos que cuentan ese día: en viaje, los elegidos (también los guardados «para vacaciones», como secundarios);
+ * en exámenes, solo el núcleo; si no, todos.
+ */
 export function countedHabits(s: Scoring, date: ISODate): { core: Habit[]; extras: Habit[] } {
   if (isTripDay(s, date)) {
     const ids = new Set(s.trip!.habits);
-    return { core: s.core.filter((h) => ids.has(h.id)), extras: s.extras.filter((h) => ids.has(h.id)) };
+    return { core: s.core.filter((h) => ids.has(h.id)), extras: [...s.extras, ...(s.vacation ?? [])].filter((h) => ids.has(h.id)) };
   }
   if (isExamDay(s, date)) return { core: s.core, extras: [] };
   return { core: s.core, extras: s.extras };

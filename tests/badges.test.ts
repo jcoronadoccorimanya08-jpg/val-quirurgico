@@ -89,8 +89,8 @@ describe('modo viaje', () => {
     const sueno = DEFAULT_CORE[0]!.id;
     const rutina = DEFAULT_CORE[1]!.id;
     const anki = DEFAULT_EXTRAS[0]!.id;
-    const s = { ...st.settings, exam: null, trip: { from: '2026-12-22', to: '2026-12-30', habits: [sueno, rutina, anki], dayGoal: 70 } };
-    const d = '2026-12-23';
+    const s = { ...st.settings, exam: null, trip: { from: '2027-01-04', to: '2027-01-12', habits: [sueno, rutina, anki], dayGoal: 70 } };
+    const d = '2027-01-05';
     expect(countedHabits(s, d).core.map((h) => h.id)).toEqual([sueno, rutina]);
     expect(goalOn(s, d)).toBe(70);
     const days: Days = { [d]: { core: { [sueno]: true, [rutina]: true }, extra: {} } };
@@ -101,16 +101,16 @@ describe('modo viaje', () => {
     expect(dayPct(s, days, d)).toBeCloseTo(100);
     expect(isWon(s, days, d)).toBe(true);
     // Fuera del viaje, todo vuelve a la normalidad
-    expect(goalOn(s, '2026-12-31')).toBe(st.settings.dayGoal);
-    expect(countedHabits(s, '2026-12-31').extras).toHaveLength(DEFAULT_EXTRAS.length);
+    expect(goalOn(s, '2027-01-13')).toBe(st.settings.dayGoal);
+    expect(countedHabits(s, '2027-01-13').extras).toHaveLength(DEFAULT_EXTRAS.length);
   });
 
   it('se valida al restaurar y es opcional', () => {
     const st = initialState(START, null);
-    const ok = sanitizeState({ ...st, settings: { ...st.settings, trip: { from: '2026-12-22', to: '2026-12-30', habits: ['sueno', 'sueno', 'gym'], dayGoal: 70 } } });
-    expect(ok?.settings.trip).toEqual({ from: '2026-12-22', to: '2026-12-30', habits: ['sueno', 'gym'], dayGoal: 70 });
-    expect(sanitizeState({ ...st, settings: { ...st.settings, trip: { from: '2026-12-30', to: '2026-12-22', habits: ['gym'] } } })?.settings.trip).toBeNull();
-    expect(sanitizeState({ ...st, settings: { ...st.settings, trip: { from: '2026-12-22', to: '2026-12-30', habits: [] } } })?.settings.trip).toBeNull();
+    const ok = sanitizeState({ ...st, settings: { ...st.settings, trip: { from: '2027-01-04', to: '2027-01-12', habits: ['sueno', 'sueno', 'gym'], dayGoal: 70 } } });
+    expect(ok?.settings.trip).toEqual({ from: '2027-01-04', to: '2027-01-12', habits: ['sueno', 'gym'], dayGoal: 70 });
+    expect(sanitizeState({ ...st, settings: { ...st.settings, trip: { from: '2027-01-12', to: '2027-01-04', habits: ['gym'] } } })?.settings.trip).toBeNull();
+    expect(sanitizeState({ ...st, settings: { ...st.settings, trip: { from: '2027-01-04', to: '2027-01-12', habits: [] } } })?.settings.trip).toBeNull();
   });
 });
 
@@ -125,5 +125,19 @@ describe('historial de ciclos', () => {
     const back = sanitizeState({ ...st, history: [sum, { start: 'x' }] });
     expect(back?.history).toHaveLength(1);
     expect(sanitizeState(st)?.history).toBeUndefined();
+  });
+});
+
+describe('modo viaje con hábitos para vacaciones', () => {
+  it('los hábitos guardados para vacaciones cuentan como secundarios si los eliges', async () => {
+    const { countedHabits, dayPct } = await import('../src/lib/engine');
+    const st = initialState(START, null);
+    const core3 = DEFAULT_CORE.slice(0, 3).map((h) => h.id);
+    const vac = st.settings.vacation[0]!.id;
+    const s = { ...st.settings, exam: null, trip: { from: '2027-01-04', to: '2027-01-24', habits: [...core3, vac], dayGoal: 60 } };
+    const d = '2027-01-10';
+    expect(countedHabits(s, d).extras.map((h) => h.id)).toEqual([vac]);
+    const days: Days = { [d]: { core: Object.fromEntries(core3.map((id) => [id, true])), extra: { [vac]: true } } };
+    expect(dayPct(s, days, d)).toBeCloseTo(100);
   });
 });

@@ -260,7 +260,7 @@ export function SettingsScreen({ state, today, hasBio }: { state: AppState; toda
               </div>
               <div className="lbl-field">Qué cuenta esos días</div>
               <div className="trip-habits" role="group" aria-label="Hábitos que cuentan en el viaje">
-                {[...s.core, ...s.extras].map((h) => {
+                {[...s.core, ...s.extras, ...s.vacation].map((h) => {
                   const on = s.trip!.habits.includes(h.id);
                   return (
                     <button
@@ -276,6 +276,7 @@ export function SettingsScreen({ state, today, hasBio }: { state: AppState; toda
                     >
                       {on ? '✓ ' : ''}
                       {habitLabel(h, s.startDate, today)}
+                      {s.vacation.some((v) => v.id === h.id) ? ' (vacaciones)' : ''}
                     </button>
                   );
                 })}

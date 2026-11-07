@@ -61,6 +61,8 @@ export function TodayScreen({ state, today, hasBio, selected, onSelect, onGoRewa
   const exam = !trip && isExamDay(s, selected);
   const goal = goalOn(s, selected);
   const counted = countedHabits(s, selected);
+  // En el viaje también aparecen los hábitos «para vacaciones» que elegiste.
+  const extrasShown = trip ? [...s.extras, ...s.vacation.filter((h) => s.trip!.habits.includes(h.id))] : s.extras;
   const countsHabit = (id: string) => !trip || counted.core.some((h) => h.id === id) || counted.extras.some((h) => h.id === id);
   const pct = Math.round(dayPct(s, state.days, selected));
   const won = isWon(s, state.days, selected);
@@ -255,7 +257,7 @@ export function TodayScreen({ state, today, hasBio, selected, onSelect, onGoRewa
             );
           })}
 
-          {s.extras.length > 0 && (
+          {extrasShown.length > 0 && (
             <>
               <SectionTitle
                 aside={
@@ -269,7 +271,7 @@ export function TodayScreen({ state, today, hasBio, selected, onSelect, onGoRewa
                 Secundarios
               </SectionTitle>
               <div className="list">
-                {s.extras.map((h) => {
+                {extrasShown.map((h) => {
                   const on = isDone(state.days, selected, 'extra', h.id);
                   const run = currentStreak(state.days, 'extra', h.id, s, today);
                   return (
