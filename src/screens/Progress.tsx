@@ -1,8 +1,9 @@
 import { Icon } from '../components/Icon';
 import { Mountain } from '../components/Mountain';
+import { MoodStatsCard } from '../components/MoodPicker';
 import { ScreenHeader, SectionTitle } from '../components/ui';
 import { formatLong, formatRange, rangeDates, type ISODate } from '../lib/dates';
-import { allSegmentProgress, cycleEnd, cycleStats, dailySeries, dayPct, habitLabel, habitStats, isWon } from '../lib/engine';
+import { allSegmentProgress, cycleEnd, cycleStats, dailySeries, dayPct, habitLabel, habitStats, isWon, lastPlayableDay, moodStats } from '../lib/engine';
 import { OTHER_NAME, VICTORY_PCT, teamFor } from '../lib/team';
 import type { AppState } from '../lib/types';
 
@@ -146,6 +147,11 @@ export function ProgressScreen({ state, today, onOpenDay }: Props) {
           </section>
         </>
       )}
+
+      <SectionTitle aside="tu % promedio">Tu ánimo</SectionTitle>
+      <section className="card" aria-label="Tu ánimo">
+        <MoodStatsCard stats={moodStats(s, state.days, today < s.startDate ? [] : rangeDates(s.startDate, lastPlayableDay(s, today)))} unit="tu porcentaje" />
+      </section>
 
       <SectionTitle>Núcleo</SectionTitle>
       <section className="card">

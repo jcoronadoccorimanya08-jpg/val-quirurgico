@@ -62,6 +62,17 @@ test('crea el patrón, gana el día con 65% y lo protege al recargar', async ({ 
   expect(raw).not.toContain('Rutina');
 });
 
+test('ánimo del día con un toque e insignias en Premios', async ({ page }) => {
+  await onboard(page, { exam: false });
+  const mood = page.getByRole('group', { name: 'Tu ánimo' });
+  await mood.getByRole('button', { name: 'Muy bien', exact: true }).click();
+  await expect(mood.getByRole('button', { name: 'Muy bien', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('nav.nav').getByRole('button', { name: 'Avance' }).click();
+  await expect(page.getByRole('region', { name: 'Tu ánimo' })).toContainText('Muy bien');
+  await page.locator('nav.nav').getByRole('button', { name: 'Premios' }).click();
+  await expect(page.getByRole('region', { name: 'Insignias' })).toContainText('0 de 6');
+});
+
 test('modo examen: con 3 del núcleo ganas el día', async ({ page }) => {
   await onboard(page, { exam: true });
   await expect(page.getByText(/Modo examen hasta el/)).toBeVisible();

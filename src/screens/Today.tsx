@@ -3,6 +3,7 @@ import { celebrate } from '../components/Confetti';
 import { GoalCard } from '../components/GoalCard';
 import { Icon } from '../components/Icon';
 import { InstallCard } from '../components/InstallCard';
+import { MoodPicker } from '../components/MoodPicker';
 import { SectionTitle } from '../components/ui';
 import { WeekCard } from '../components/WeekCard';
 import { APP_NAME, LEMA } from '../lib/config';
@@ -28,6 +29,7 @@ import {
   wonStreak,
 } from '../lib/engine';
 import { haptic, toast } from '../lib/feedback';
+import { badgeBlocks, earnedTiers } from '../lib/badges';
 import { wildcards } from '../lib/rewards';
 import { actions, biometricSupport, enableBiometric, getState, lock } from '../lib/store';
 import type { AppState, HabitKind, Settings } from '../lib/types';
@@ -66,12 +68,18 @@ export function TodayScreen({ state, today, hasBio, selected, onSelect, onGoRewa
     if (!before) return;
     const wasWon = isWon(s, before.days, selected);
     const weekWasWon = seg ? segmentProgress(seg, s, before.days, today).status === 'won' : false;
+    const tiersBefore = earnedTiers(badgeBlocks(s, before.days, today)).length;
     actions.toggle(selected, kind, id);
     haptic(10);
     const after = getState();
     if (!after) return;
     const weekNowWon = seg ? segmentProgress(seg, s, after.days, today).status === 'won' : false;
-    if (seg && !weekWasWon && weekNowWon) {
+    const tiers = earnedTiers(badgeBlocks(s, after.days, today));
+    if (tiers.length > tiersBefore) {
+      celebrate('week');
+      haptic([20, 60, 20, 60, 40]);
+      toast(`¡Insignia ${tiers[tiers.length - 1]}! ${s.weeklyGoal * 2} días ganados en 2 semanas.`, 'reward');
+    } else if (seg && !weekWasWon && weekNowWon) {
       celebrate('week');
       haptic([20, 60, 20, 60, 40]);
       toast(`¡Semana ${seg.index} ganada! +${s.fundPerWeek} Bs y un cofre en Premios.`, 'reward');
@@ -247,6 +255,15 @@ export function TodayScreen({ state, today, hasBio, selected, onSelect, onGoRewa
               </div>
             </>
           )}
+
+          <MoodPicker
+            value={state.days[selected]?.mood}
+            disabled={!editable}
+            onChange={(m) => {
+              actions.setMood(selected, m);
+              haptic(8);
+            }}
+          />
 
           <p className="fine">Márcalo cada noche, antes de las 23:00. Si un día se te pasó, vuelve atrás y corrígelo.</p>
         </>

@@ -13,6 +13,8 @@ Es la "App 1". Existe otra app separada y privada (Bitácora); no mezcles códig
 - **Fondo:** `fundPerWeek` (Bs 100) por semana ganada + bonos de cofres − canjes. Un comodín cada 2 semanas ganadas.
 - Hábitos con `levels` cambian solos por semana (Meditar 10 → 15 min).
 - **Semana victoriosa** (`src/lib/team.ts`): el promedio de la semana de Val Q y de Bitácora llega a 80 %. El **gran premio compartido** (`settings.grand`) pide N semanas victoriosas (9 de 13) y se reclama en Bitácora; en Hoy aparece después del premio especial.
+- **Insignias** (`src/lib/badges.ts`): cada bloque de 2 semanas con `weeklyGoal × 2` días ganados sube un nivel (Bronce, Plata, Oro, Platino, Diamante, Leyenda). Un bloque perdido no quita nada.
+- **Ánimo del día** (`DayLog.mood`, 1 a 5): un toque en Hoy; en Avance se ve tu porcentaje según tu ánimo.
 - Marcar un día completo debe tomar menos de 30 segundos; los botones miden 48 px o más.
 
 ## Privacidad y datos

@@ -35,7 +35,7 @@ import {
 import type { ISODate } from './dates';
 import { chestFromRoll } from './rewards';
 import { sanitizeState } from './sanitize';
-import type { AppState, CatalogItem, ExamPeriod, Habit, HabitKind, Settings, SharedGrand, SpecialPrize } from './types';
+import type { AppState, CatalogItem, DayLog, ExamPeriod, Habit, HabitKind, Mood, Settings, SharedGrand, SpecialPrize } from './types';
 import { deleteVault, readVault, removeLegacyPlaintext, requestPersistence, writeVault, type LockRecord, type VaultRecord } from './vault';
 
 export type Phase = 'loading' | 'setup' | 'locked' | 'unlocked';
@@ -314,6 +314,16 @@ export const actions = {
     update((st) => {
       const prev = st.days[date] ?? { core: {}, extra: {} };
       return { ...st, days: { ...st.days, [date]: { ...prev, wildcard: true, updatedAt: new Date().toISOString() } } };
+    });
+  },
+
+  setMood(date: ISODate, mood: Mood | null) {
+    update((st) => {
+      const prev = st.days[date] ?? { core: {}, extra: {} };
+      const next: DayLog = { ...prev, updatedAt: new Date().toISOString() };
+      if (mood) next.mood = mood;
+      else delete next.mood;
+      return { ...st, days: { ...st.days, [date]: next } };
     });
   },
 

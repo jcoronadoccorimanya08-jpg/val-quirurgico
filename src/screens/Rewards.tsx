@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import { BadgesCard } from '../components/Badges';
 import { celebrate } from '../components/Confetti';
 import { Icon } from '../components/Icon';
 import { ConfirmDialog, ScreenHeader, SectionTitle } from '../components/ui';
 import { CHEST_LABEL } from '../lib/config';
 import { formatLong, formatRange, formatShort, isValidISODate, localDateOf, type ISODate } from '../lib/dates';
+import { badgeBlocks } from '../lib/badges';
 import { allSegmentProgress, cycleEnd } from '../lib/engine';
 import { haptic, toast } from '../lib/feedback';
 import { fund, pendingChests, specialStatus, wildcards } from '../lib/rewards';
@@ -86,6 +88,8 @@ export function RewardsScreen({ state, today }: { state: AppState; today: ISODat
           </button>
         </section>
       ))}
+
+      <BadgesCard blocks={badgeBlocks(s, state.days, today)} rule={`Cada insignia se gana con ${s.weeklyGoal * 2} días ganados en 2 semanas.`} />
 
       <SpecialCard state={state} today={today} />
       <SharedGrandCard state={state} today={today} />

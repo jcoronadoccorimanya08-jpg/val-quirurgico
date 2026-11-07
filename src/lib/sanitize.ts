@@ -1,7 +1,7 @@
 /** Validación del estado (al descifrar y al restaurar respaldos). */
 import { CYCLE_LENGTH, DEFAULT_CORE_WEIGHT, DEFAULT_DAY_GOAL, DEFAULT_FUND_PER_WEEK } from './config';
 import { isValidISODate } from './dates';
-import type { AppState, CatalogItem, Chest, ChestOutcome, DayLog, Habit, Redemption, Settings, SharedGrand, SpecialPrize, Theme } from './types';
+import type { AppState, CatalogItem, Chest, ChestOutcome, DayLog, Habit, Mood, Redemption, Settings, SharedGrand, SpecialPrize, Theme } from './types';
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const str = (v: unknown, max: number): string | null => (typeof v === 'string' ? v.trim().slice(0, max) : null);
@@ -120,6 +120,7 @@ export function sanitizeState(raw: unknown): AppState | null {
       if (!isValidISODate(date) || !isObj(log)) continue;
       const day: DayLog = { core: flags(log.core), extra: flags(log.extra) };
       if (log.wildcard === true) day.wildcard = true;
+      if (typeof log.mood === 'number' && Number.isInteger(log.mood) && log.mood >= 1 && log.mood <= 5) day.mood = log.mood as Mood;
       const u = str(log.updatedAt, 40);
       if (u) day.updatedAt = u;
       state.days[date] = day;

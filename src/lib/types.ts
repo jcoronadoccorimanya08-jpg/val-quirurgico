@@ -79,11 +79,15 @@ export interface Settings {
   lastBackupAt?: string;
 }
 
+/** Ánimo del día: 1 = muy mal … 5 = muy bien. */
+export type Mood = 1 | 2 | 3 | 4 | 5;
+
 export interface DayLog {
   core: Record<string, boolean>;
   extra: Record<string, boolean>;
   /** Día salvado con un comodín: cuenta como ganado. */
   wildcard?: boolean;
+  mood?: Mood;
   updatedAt?: string;
 }
 

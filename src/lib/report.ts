@@ -9,10 +9,12 @@ import {
   isExamDay,
   isWon,
   lastDays,
+  moodStats,
   segmentPct,
   wonStreak,
   type SegmentStatus,
 } from './engine';
+import { badgeBlocks, earnedTiers } from './badges';
 import { fund } from './rewards';
 import type { AppState } from './types';
 
@@ -46,6 +48,10 @@ export function buildReport(state: AppState, today: ISODate): string {
   L.push('CICLO');
   L.push(`• Días ganados: ${stats.wonDays} · promedio diario ${stats.avgPct}% · racha actual ${wonStreak(s, state.days, today)} días`);
   L.push(`• Semanas ganadas: ${stats.segmentsWon} de ${stats.segmentsTotal} · fondo de premios: Bs ${f.balance}`);
+  const tiers = earnedTiers(badgeBlocks(s, state.days, today));
+  L.push(`• Insignias: ${tiers.length ? tiers.join(', ') : 'todavía ninguna'}`);
+  const moods = moodStats(s, state.days, week);
+  if (moods.length) L.push(`• Ánimo (7 días): ${moods.map((m) => `${m.mood}/5 → ${Math.round(m.avgPct)}% (${m.days} d)`).join(' · ')}`);
   L.push('');
   L.push('NÚCLEO');
   for (const h of habitStats(s, state.days, today, 'core')) L.push(`• ${h.habit.name}: ${h.pct}% · racha ${h.current} · mejor ${h.best}`);
