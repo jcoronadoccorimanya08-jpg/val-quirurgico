@@ -4,12 +4,13 @@ import { Icon } from '../components/Icon';
 import { ConfirmDialog, ScreenHeader, SectionTitle } from '../components/ui';
 import { CHEST_LABEL } from '../lib/config';
 import { formatLong, formatRange, formatShort, isValidISODate, localDateOf, type ISODate } from '../lib/dates';
-import { allSegmentProgress } from '../lib/engine';
+import { allSegmentProgress, cycleEnd } from '../lib/engine';
 import { haptic, toast } from '../lib/feedback';
 import { fund, pendingChests, specialStatus, wildcards } from '../lib/rewards';
 import { STATUS_LABEL } from '../lib/report';
 import { actions } from '../lib/store';
-import type { AppState, CatalogItem, SpecialPrize } from '../lib/types';
+import { OTHER_NAME, VICTORY_PCT, teamFor } from '../lib/team';
+import type { AppState, CatalogItem, SharedGrand, SpecialPrize } from '../lib/types';
 
 export function RewardsScreen({ state, today }: { state: AppState; today: ISODate }) {
   const s = state.settings;
@@ -87,6 +88,7 @@ export function RewardsScreen({ state, today }: { state: AppState; today: ISODat
       ))}
 
       <SpecialCard state={state} today={today} />
+      <SharedGrandCard state={state} today={today} />
 
       <SectionTitle aside={`${active.length} premios`}>Tu lista</SectionTitle>
       {active.map((item) => {
@@ -362,6 +364,99 @@ function SpecialEditor({ sp, start, onDone }: { sp: SpecialPrize | null; start: 
             if (sp?.claimedAt) next.claimedAt = sp.claimedAt;
             actions.setSpecial(next);
             toast('Premio especial guardado.', 'success');
+            onDone();
+          }}
+        >
+          Guardar
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function SharedGrandCard({ state, today }: { state: AppState; today: ISODate }) {
+  const s = state.settings;
+  const [edit, setEdit] = useState(false);
+  const g = s.grand;
+  if (edit) return <SharedGrandEditor grand={g} onDone={() => setEdit(false)} />;
+  if (!g)
+    return (
+      <button type="button" className="btn block" style={{ marginTop: 10 }} onClick={() => setEdit(true)}>
+        <Icon name="trophy" size={18} /> Agregar el gran premio compartido con {OTHER_NAME}
+      </button>
+    );
+  const team = teamFor(s, state.days, today);
+  const end = cycleEnd(s);
+  const claimed = Boolean(team.other?.grandClaimed);
+  const ready = !claimed && team.victories >= g.weeks && today >= end;
+  const hint = !team.other
+    ? `Abre ${OTHER_NAME} en este teléfono para sumar sus semanas.`
+    : !team.aligned
+      ? `${OTHER_NAME} tiene otro inicio de ciclo. Pon la misma fecha en las dos apps para que las semanas coincidan.`
+      : ready
+        ? `¡Lo lograste! Reclámalo en ${OTHER_NAME}.`
+        : `Se reclama en ${OTHER_NAME} el último día del ciclo.`;
+  return (
+    <section className={`card special ${ready ? 'ready' : ''}`} aria-label="Gran premio compartido">
+      <div className="reward-head">
+        <div>
+          <div className="goal-eyebrow">Gran premio compartido</div>
+          <div className="card-title">{g.name}</div>
+          <div className="reward-dates">
+            {formatLong(end)} · {g.weeks} semanas victoriosas
+          </div>
+        </div>
+        <button type="button" className="icon-btn" aria-label="Editar gran premio compartido" onClick={() => setEdit(true)}>
+          <Icon name="sliders" size={18} />
+        </button>
+      </div>
+      {claimed ? (
+        <div className="claimed-note">
+          <Icon name="check" size={16} /> Reclamado en {OTHER_NAME}
+        </div>
+      ) : (
+        <>
+          <div className="reward-progress">
+            <div className="bar gold">
+              <i style={{ width: `${Math.min(100, Math.round((team.victories / Math.max(1, g.weeks)) * 100))}%` }} />
+            </div>
+            {team.victories}/{g.weeks} semanas
+          </div>
+          <p className="muted" style={{ marginTop: 8, fontSize: 13.5 }}>
+            Semana victoriosa: el promedio de Val Q y {OTHER_NAME} llega a {VICTORY_PCT} %. {hint}
+          </p>
+        </>
+      )}
+    </section>
+  );
+}
+
+function SharedGrandEditor({ grand, onDone }: { grand: SharedGrand | null; onDone: () => void }) {
+  const [name, setName] = useState(grand?.name ?? '');
+  const [weeks, setWeeks] = useState(String(grand?.weeks ?? 9));
+  return (
+    <section className="card special">
+      <div className="card-title">Gran premio compartido</div>
+      <p>El mismo premio en Val Q y en {OTHER_NAME}. Se gana con semanas victoriosas: el promedio de las dos apps llega a {VICTORY_PCT} %.</p>
+      <label className="lbl-field">
+        Nombre
+        <input className="field" value={name} maxLength={60} placeholder="Tu gran premio" onChange={(e) => setName(e.target.value)} />
+      </label>
+      <label className="lbl-field">
+        Semanas victoriosas necesarias
+        <input className="field" inputMode="numeric" value={weeks} onChange={(e) => setWeeks(e.target.value.replace(/\D/g, '').slice(0, 2))} />
+      </label>
+      <div className="btn-row">
+        <button type="button" className="btn" onClick={onDone}>
+          Cancelar
+        </button>
+        <button
+          type="button"
+          className="btn primary"
+          disabled={!name.trim() || !Number(weeks)}
+          onClick={() => {
+            actions.setGrand({ name: name.trim(), weeks: Math.min(13, Math.max(1, Number(weeks))) });
+            toast('Gran premio guardado.', 'success');
             onDone();
           }}
         >

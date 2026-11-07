@@ -92,6 +92,36 @@ test('premios: fondo, lista con precios y premio especial editable', async ({ pa
   await expect(page.getByRole('button', { name: 'Tu meta' })).toContainText('Mi viaje');
 });
 
+test('semana victoriosa: el promedio con Bitácora suma para el gran premio compartido', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('bitacora.semanas', JSON.stringify({ v: 1, start: '2026-11-07', weeks: { '2026-11-07': 60 }, at: '' }));
+  });
+  await onboard(page, { exam: true });
+  await page.locator('nav.nav').getByRole('button', { name: 'Premios' }).click();
+  await page.getByRole('button', { name: 'Agregar el gran premio compartido con Bitácora' }).click();
+  await page.getByPlaceholder('Tu gran premio').fill('Premio compartido');
+  await page.getByRole('button', { name: 'Guardar' }).click();
+  const card = page.getByRole('region', { name: 'Gran premio compartido' });
+  await expect(card).toContainText('0/9 semanas');
+
+  // Una semana con el núcleo completo (modo examen: 100 %); Bitácora tuvo 60 % → promedio 80 %.
+  await page.clock.setFixedTime(new Date('2026-11-13T21:00:00-04:00'));
+  await page.reload();
+  await draw(page, PATTERN);
+  await expect(page.getByRole('heading', { name: 'Día 7 de 90' })).toBeVisible();
+  for (let i = 0; i < 7; i++) {
+    for (const name of CORE) await page.getByRole('button', { name: new RegExp(`^${name}`) }).click();
+    if (i < 6) await page.getByRole('button', { name: 'Día anterior' }).click();
+  }
+  await page.locator('nav.nav').getByRole('button', { name: 'Premios' }).click();
+  await expect(card).toContainText('1/9 semanas');
+  await page.locator('nav.nav').getByRole('button', { name: 'Avance' }).click();
+  await expect(page.getByLabel('Semanas victoriosas').locator('.col.victory')).toHaveCount(1);
+  const share = await page.evaluate(() => localStorage.getItem('val-quirurgico.semanas') ?? '');
+  expect(share).toContain('"2026-11-07":100');
+  expect(share).not.toContain('Gym');
+});
+
 test('respaldo: se copia como texto y se restaura con su patrón', async ({ page, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await onboard(page, { exam: false });

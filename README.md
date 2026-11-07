@@ -20,6 +20,7 @@ Funciona sin internet, se instala con su propio ícono y guarda todo **cifrado**
 - **Fondo de premios:** cada semana ganada suma **Bs 100**. Con el fondo canjeas los premios de tu lista (cada uno con su precio).
 - **Cofre sorpresa** por cada semana ganada (+20 o +50 Bs, un comodín o una noche de peli) y **comodín** cada 2 semanas ganadas, para salvar un día malo.
 - **Premio especial** con fecha (por ejemplo, un viaje): se desbloquea desde una fecha si ganaste las semanas que elijas. Se escribe en la app.
+- **Semana victoriosa y gran premio compartido con Bitácora:** si el promedio de las dos apps en la semana llega a 80 %, la semana es victoriosa. El gran premio compartido se gana con las semanas victoriosas que elijas (por ejemplo, 9 de 13). Las dos apps se pasan solo esos porcentajes, nunca tus hábitos.
 - **Avance:** tu montaña (promedio de 7 días y cada día), mapa del ciclo, semanas y cada hábito.
 - **Reporte:** tarjeta de la semana, **imagen** para compartir y texto para pegar en Claude.
 

@@ -1,7 +1,7 @@
 # Val quirúrgico — guía para Claude
 
 PWA personal de hábitos (ciclo de 90 días, núcleo de 4, porcentaje diario y fondo de premios). Se usa a diario en un Android Samsung, instalada desde Chrome.
-Es la "App 1". Existe otra app separada y privada (Bitácora); no mezcles código ni datos entre ambas.
+Es la "App 1". Existe otra app separada y privada (Bitácora); no mezcles código ni datos entre ambas. Única excepción acordada: los porcentajes semanales de la semana victoriosa (ver abajo).
 
 ## Reglas del producto
 
@@ -12,13 +12,14 @@ Es la "App 1". Existe otra app separada y privada (Bitácora); no mezcles códig
 - **Semanas** desde el inicio del ciclo, de 7 días; se gana con `weeklyGoal` (6) días ganados. El tramo final es más corto y su meta baja.
 - **Fondo:** `fundPerWeek` (Bs 100) por semana ganada + bonos de cofres − canjes. Un comodín cada 2 semanas ganadas.
 - Hábitos con `levels` cambian solos por semana (Meditar 10 → 15 min).
+- **Semana victoriosa** (`src/lib/team.ts`): el promedio de la semana de Val Q y de Bitácora llega a 80 %. El **gran premio compartido** (`settings.grand`) pide N semanas victoriosas (9 de 13) y se reclama en Bitácora; en Hoy aparece después del premio especial.
 - Marcar un día completo debe tomar menos de 30 segundos; los botones miden 48 px o más.
 
 ## Privacidad y datos
 
 - El repositorio y el sitio son **públicos**: nunca pongas datos personales en el código ni en los commits (nombre, horarios, viajes, premios con fechas personales). El premio especial se escribe **en la app**.
-- Los datos se guardan **solo cifrados** (`src/lib/vault.ts`): una llave de datos al azar, envuelta por el patrón (PBKDF2) y opcionalmente por la huella (passkey con PRF). Nunca guardes el patrón ni datos en texto plano. Preferencias sin cifrar permitidas: tema, aviso de instalación y aviso de huella.
-- Estado con `schema: 2` validado en `src/lib/sanitize.ts`. Si cambias el formato, sube `schema` y migra. Nunca pierdas datos.
+- Los datos se guardan **solo cifrados** (`src/lib/vault.ts`): una llave de datos al azar, envuelta por el patrón (PBKDF2) y opcionalmente por la huella (passkey con PRF). Nunca guardes el patrón ni datos en texto plano. Preferencias sin cifrar permitidas: tema, aviso de instalación y aviso de huella. Además, para la semana victoriosa, cada app publica **solo números** (el porcentaje de cada semana, por fecha) en `val-quirurgico.semanas` y lee `bitacora.semanas`: nunca nombres de hábitos ni nada más.
+- Estado con `schema: 2` validado en `src/lib/sanitize.ts`. Si cambias el formato, sube `schema` y migra. Un campo nuevo opcional con valor por defecto en `sanitize.ts` (como `grand`) no lo cambia. Nunca pierdas datos.
 - Sin servidores, analítica ni librerías que llamen a internet.
 
 ## Reglas técnicas

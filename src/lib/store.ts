@@ -35,7 +35,7 @@ import {
 import type { ISODate } from './dates';
 import { chestFromRoll } from './rewards';
 import { sanitizeState } from './sanitize';
-import type { AppState, CatalogItem, ExamPeriod, Habit, HabitKind, Settings, SpecialPrize } from './types';
+import type { AppState, CatalogItem, ExamPeriod, Habit, HabitKind, Settings, SharedGrand, SpecialPrize } from './types';
 import { deleteVault, readVault, removeLegacyPlaintext, requestPersistence, writeVault, type LockRecord, type VaultRecord } from './vault';
 
 export type Phase = 'loading' | 'setup' | 'locked' | 'unlocked';
@@ -275,6 +275,7 @@ export function initialState(startDate: ISODate, exam: ExamPeriod | null, theme:
     fundPerWeek: DEFAULT_FUND_PER_WEEK,
     catalog: structuredClone(DEFAULT_CATALOG),
     special: defaultSpecial(startDate),
+    grand: null,
     theme,
     autoLockMinutes: 1,
     createdAt: new Date().toISOString(),
@@ -349,6 +350,10 @@ export const actions = {
 
   setSpecial(special: SpecialPrize | null) {
     updateSettings((s) => ({ ...s, special }));
+  },
+
+  setGrand(grand: SharedGrand | null) {
+    updateSettings((s) => ({ ...s, grand }));
   },
 
   upsertCatalogItem(item: CatalogItem) {

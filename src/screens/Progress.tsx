@@ -3,6 +3,7 @@ import { Mountain } from '../components/Mountain';
 import { ScreenHeader, SectionTitle } from '../components/ui';
 import { formatLong, formatRange, rangeDates, type ISODate } from '../lib/dates';
 import { allSegmentProgress, cycleEnd, cycleStats, dailySeries, dayPct, habitLabel, habitStats, isWon } from '../lib/engine';
+import { OTHER_NAME, VICTORY_PCT, teamFor } from '../lib/team';
 import type { AppState } from '../lib/types';
 
 interface Props {
@@ -25,6 +26,7 @@ export function ProgressScreen({ state, today, onOpenDay }: Props) {
   const series = dailySeries(s, state.days, today);
   const core = habitStats(s, state.days, today, 'core');
   const extras = habitStats(s, state.days, today, 'extra');
+  const team = teamFor(s, state.days, today);
 
   return (
     <>
@@ -121,6 +123,29 @@ export function ProgressScreen({ state, today, onOpenDay }: Props) {
           ))}
         </div>
       </section>
+
+      {(s.grand || team.other) && (
+        <>
+          <SectionTitle aside={`${team.victories} de ${team.list.length}`}>Semanas victoriosas</SectionTitle>
+          <section className="card" aria-label="Semanas victoriosas">
+            <div className="weeks-chart" role="img" aria-label={`Promedio de Val Q y ${OTHER_NAME} en cada semana`}>
+              {team.list.map((w, i) => (
+                <div key={w.index} className={`col ${w.victory ? 'victory' : w.avg !== null ? 'active' : ''}`}>
+                  <b>{w.avg === null ? '' : Math.round(w.avg)}</b>
+                  <div className="track">
+                    <i style={{ height: `${w.avg === null ? 0 : Math.max(3, w.avg)}%` }} />
+                  </div>
+                  <span>{i === team.list.length - 1 ? 'F' : w.index}</span>
+                </div>
+              ))}
+            </div>
+            <p className="muted" style={{ fontSize: 13 }}>
+              Promedio de Val Q y {OTHER_NAME} en cada semana. Dorado: {VICTORY_PCT} % o más.
+              {!team.other ? ` Abre ${OTHER_NAME} en este teléfono para sumar sus semanas.` : !team.aligned ? ` ${OTHER_NAME} tiene otro inicio de ciclo.` : ''}
+            </p>
+          </section>
+        </>
+      )}
 
       <SectionTitle>Núcleo</SectionTitle>
       <section className="card">

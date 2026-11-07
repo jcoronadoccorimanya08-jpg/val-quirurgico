@@ -316,3 +316,13 @@ export function lastDays(today: ISODate, n: number, s: Cycle): ISODate[] {
   const from = maxDate(s.startDate, addDays(ref, -(n - 1)));
   return ref < s.startDate ? [] : rangeDates(from, ref);
 }
+
+/** Porcentaje de cada semana que ya empezó, por fecha de inicio (lo que se comparte para la semana victoriosa). */
+export function weeklyPcts(s: Settings, days: Days, today: ISODate): Record<ISODate, number> {
+  const out: Record<ISODate, number> = {};
+  for (const seg of buildSegments(s)) {
+    if (today < seg.start) continue;
+    out[seg.start] = Math.round(segmentPct(seg, s, days, today) * 10) / 10;
+  }
+  return out;
+}

@@ -1,6 +1,7 @@
-import { diffDays, formatLong, type ISODate } from '../lib/dates';
-import { allSegmentProgress } from '../lib/engine';
+import { diffDays, formatLong, plural, type ISODate } from '../lib/dates';
+import { allSegmentProgress, cycleEnd } from '../lib/engine';
 import { fund, nextCatalogGoal, specialStatus } from '../lib/rewards';
+import { OTHER_NAME, teamFor } from '../lib/team';
 import type { AppState } from '../lib/types';
 import { Icon } from './Icon';
 
@@ -36,6 +37,38 @@ export function GoalCard({ state, today, onOpen }: { state: AppState; today: ISO
           <span className="goal-count">
             <b>{days}</b>
             <small>{days === 1 ? 'día' : 'días'}</small>
+          </span>
+        )}
+      </button>
+    );
+  }
+
+  // Después del premio especial: el gran premio compartido con Bitácora.
+  const g = s.grand;
+  const team = g ? teamFor(s, state.days, today) : null;
+  if (g && team && !team.other?.grandClaimed) {
+    const end = cycleEnd(s);
+    const left = diffDays(today, end);
+    const ready = team.victories >= g.weeks && today >= end;
+    const line = ready
+      ? `¡Lo lograste! Reclámalo en ${OTHER_NAME}.`
+      : left < 0
+        ? `Te faltaron ${plural(g.weeks - team.victories, 'semana victoriosa', 'semanas victoriosas')}. Va de nuevo en tu próximo ciclo.`
+        : `${team.victories} de ${g.weeks} semanas victoriosas`;
+    return (
+      <button type="button" className={`goal ${ready ? 'ready' : ''}`} onClick={onOpen} aria-label="Tu meta">
+        <span className="goal-icon">
+          <Icon name="trophy" size={22} />
+        </span>
+        <span className="goal-body">
+          <span className="goal-eyebrow">Gran premio compartido</span>
+          <b>{g.name}</b>
+          <span className="goal-sub">{line}</span>
+        </span>
+        {left >= 0 && !ready && (
+          <span className="goal-count">
+            <b>{left}</b>
+            <small>{left === 1 ? 'día' : 'días'}</small>
           </span>
         )}
       </button>

@@ -1,7 +1,7 @@
 /** Validación del estado (al descifrar y al restaurar respaldos). */
 import { CYCLE_LENGTH, DEFAULT_CORE_WEIGHT, DEFAULT_DAY_GOAL, DEFAULT_FUND_PER_WEEK } from './config';
 import { isValidISODate } from './dates';
-import type { AppState, CatalogItem, Chest, ChestOutcome, DayLog, Habit, Redemption, Settings, SpecialPrize, Theme } from './types';
+import type { AppState, CatalogItem, Chest, ChestOutcome, DayLog, Habit, Redemption, Settings, SharedGrand, SpecialPrize, Theme } from './types';
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const str = (v: unknown, max: number): string | null => (typeof v === 'string' ? v.trim().slice(0, max) : null);
@@ -65,6 +65,13 @@ function special(v: unknown): SpecialPrize | null {
   return sp;
 }
 
+function grand(v: unknown): SharedGrand | null {
+  if (!isObj(v)) return null;
+  const name = str(v.name, 60);
+  if (!name) return null;
+  return { name, weeks: Math.round(num(v.weeks, 1, 13, 9)) };
+}
+
 function settings(v: unknown): Settings | null {
   if (!isObj(v) || !isValidISODate(v.startDate)) return null;
   const core = habits(v.core, true);
@@ -84,6 +91,7 @@ function settings(v: unknown): Settings | null {
     fundPerWeek: Math.round(num(v.fundPerWeek, 0, 10000, DEFAULT_FUND_PER_WEEK)),
     catalog: catalog(v.catalog),
     special: special(v.special),
+    grand: grand(v.grand),
     theme,
     autoLockMinutes: Math.round(num(v.autoLockMinutes, 0, 60, 1)),
     createdAt: str(v.createdAt, 40) ?? new Date().toISOString(),

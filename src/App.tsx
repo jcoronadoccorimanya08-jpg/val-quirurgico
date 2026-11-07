@@ -3,11 +3,12 @@ import { ConfettiHost } from './components/Confetti';
 import { BottomNav, ToastHost, type Tab } from './components/ui';
 import { UpdateBanner, useServiceWorker } from './components/UpdateBanner';
 import { canShareFiles, downloadBackupText, serializeBackup, shareBackupText } from './lib/backup';
-import { allSegmentProgress, lastPlayableDay } from './lib/engine';
+import { allSegmentProgress, lastPlayableDay, weeklyPcts } from './lib/engine';
 import { toast } from './lib/feedback';
 import { useMediaQuery, useToday } from './lib/hooks';
 import { pendingChests, specialStatus } from './lib/rewards';
 import { actions, currentBackup, getState, lock, onSaveError, useStore } from './lib/store';
+import { writeShare } from './lib/team';
 import type { ISODate } from './lib/dates';
 import type { Theme } from './lib/types';
 import { LockScreen } from './screens/Lock';
@@ -56,6 +57,12 @@ export function App() {
 
   useTheme(state?.settings.theme ?? readThemePref());
   useEffect(() => onSaveError((m) => toast(m, 'error')), []);
+
+  // Semana victoriosa: publica solo tus porcentajes semanales (números) para que Bitácora los lea.
+  useEffect(() => {
+    if (!state) return;
+    writeShare({ start: state.settings.startDate, weeks: weeklyPcts(state.settings, state.days, today) });
+  }, [state, today]);
 
   // Bloqueo automático y cortina de privacidad al salir de la app.
   useEffect(() => {

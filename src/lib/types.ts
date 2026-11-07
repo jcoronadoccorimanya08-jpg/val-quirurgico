@@ -45,6 +45,13 @@ export interface SpecialPrize {
   claimedAt?: string;
 }
 
+/** Gran premio compartido con Bitácora: se gana con semanas victoriosas (el promedio de las dos apps llega a 80 %). Se escribe en la app. */
+export interface SharedGrand {
+  name: string;
+  /** Semanas victoriosas necesarias. */
+  weeks: number;
+}
+
 export interface Settings {
   startDate: ISODate;
   cycleLength: number;
@@ -63,6 +70,8 @@ export interface Settings {
   fundPerWeek: number;
   catalog: CatalogItem[];
   special: SpecialPrize | null;
+  /** Opcional: los estados guardados antes no lo tienen (se lee como null). */
+  grand: SharedGrand | null;
   theme: Theme;
   /** Minutos fuera de la app antes de pedir el patrón otra vez (0 = al salir). */
   autoLockMinutes: number;

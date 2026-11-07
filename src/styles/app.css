@@ -2140,3 +2140,18 @@ dialog::backdrop {
   font-size: 13px;
   color: var(--muted);
 }
+
+/* ---------- Semana victoriosa ---------- */
+.bar.gold > i {
+  background: var(--gold);
+}
+.weeks-chart .col.victory i {
+  background: var(--gold);
+}
+.weeks-chart .col b {
+  font-size: 10px;
+  font-weight: 650;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  height: 14px;
+}
