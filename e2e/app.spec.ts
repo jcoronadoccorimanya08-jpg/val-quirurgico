@@ -90,3 +90,12 @@ test('si elegiste el lunes, puedes empezar hoy igual', async ({ page }) => {
   await page.getByRole('button', { name: 'Prefiero empezar hoy' }).click();
   await expect(page.getByRole('heading', { name: 'Día 1 de 90' })).toBeVisible();
 });
+
+test('si la app ya está instalada, lo dice en vez de pedir instalarla', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'getInstalledRelatedApps', { value: async () => [{ platform: 'webapp' }] });
+  });
+  await page.goto('./');
+  await expect(page.getByRole('status', { name: 'App instalada' })).toContainText('Ya la tienes instalada');
+  await expect(page.getByRole('region', { name: 'Instalar la app' })).toHaveCount(0);
+});
