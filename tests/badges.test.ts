@@ -69,3 +69,15 @@ describe('ánimo del día', () => {
     expect(back?.days['2026-11-09']?.mood).toBeUndefined();
   });
 });
+
+describe('apariencia', () => {
+  it('guarda tema negro, color y letra grande; valores raros vuelven a lo normal', () => {
+    const st = initialState(START, null);
+    const ok = sanitizeState({ ...st, settings: { ...st.settings, theme: 'black', accent: 'violeta', textSize: 'grande' } });
+    expect(ok?.settings).toMatchObject({ theme: 'black', accent: 'violeta', textSize: 'grande' });
+    const odd = sanitizeState({ ...st, settings: { ...st.settings, theme: 'neon', accent: 'oro', textSize: 'xl' } });
+    expect(odd?.settings.theme).toBe('system');
+    expect(odd?.settings.accent).toBeUndefined();
+    expect(odd?.settings.textSize).toBeUndefined();
+  });
+});

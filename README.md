@@ -25,6 +25,8 @@ Funciona sin internet, se instala con su propio ícono y guarda todo **cifrado**
 - **Ánimo del día:** un toque en Hoy; en Avance ves cómo se relaciona con tu porcentaje.
 - **Avance:** tu montaña (promedio de 7 días y cada día), mapa del ciclo, semanas, semanas victoriosas, tu ánimo y cada hábito.
 - **Reporte:** tarjeta de la semana, **imagen** para compartir y texto para pegar en Claude.
+- **Apariencia:** tema automático, oscuro, **negro puro** o claro; cuatro colores y letra grande (Ajustes → Apariencia).
+- **Cómo funciona:** todas las reglas, con tus números, en Ajustes → App.
 
 ## Tus datos
 

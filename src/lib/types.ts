@@ -17,7 +17,9 @@ export interface Habit {
   levels?: HabitLevel[];
 }
 
-export type Theme = 'system' | 'dark' | 'light';
+export type Theme = 'system' | 'dark' | 'light' | 'black';
+export type Accent = 'verde' | 'violeta' | 'lima' | 'rosa';
+export type TextSize = 'normal' | 'grande';
 
 /** Temporada de exámenes: esos días solo cuenta el núcleo. */
 export interface ExamPeriod {
@@ -73,6 +75,9 @@ export interface Settings {
   /** Opcional: los estados guardados antes no lo tienen (se lee como null). */
   grand: SharedGrand | null;
   theme: Theme;
+  /** Opcionales: los estados guardados antes no los tienen (verde y normal). */
+  accent?: Accent;
+  textSize?: TextSize;
   /** Minutos fuera de la app antes de pedir el patrón otra vez (0 = al salir). */
   autoLockMinutes: number;
   createdAt: string;

@@ -1,6 +1,7 @@
 /** Validación del estado (al descifrar y al restaurar respaldos). */
 import { CYCLE_LENGTH, DEFAULT_CORE_WEIGHT, DEFAULT_DAY_GOAL, DEFAULT_FUND_PER_WEEK } from './config';
 import { isValidISODate } from './dates';
+import { isAccent, isTextSize, isTheme } from './look';
 import type { AppState, CatalogItem, Chest, ChestOutcome, DayLog, Habit, Mood, Redemption, Settings, SharedGrand, SpecialPrize, Theme } from './types';
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -76,7 +77,7 @@ function settings(v: unknown): Settings | null {
   if (!isObj(v) || !isValidISODate(v.startDate)) return null;
   const core = habits(v.core, true);
   if (!core.length) return null;
-  const theme: Theme = v.theme === 'dark' || v.theme === 'light' ? v.theme : 'system';
+  const theme: Theme = isTheme(v.theme) ? v.theme : 'system';
   const exam = isObj(v.exam) && isValidISODate(v.exam.from) && isValidISODate(v.exam.to) && v.exam.from <= v.exam.to ? { from: v.exam.from, to: v.exam.to } : null;
   const s: Settings = {
     startDate: v.startDate,
@@ -98,6 +99,8 @@ function settings(v: unknown): Settings | null {
   };
   const lb = str(v.lastBackupAt, 40);
   if (lb) s.lastBackupAt = lb;
+  if (isAccent(v.accent) && v.accent !== 'verde') s.accent = v.accent;
+  if (isTextSize(v.textSize) && v.textSize !== 'normal') s.textSize = v.textSize;
   return s;
 }
 

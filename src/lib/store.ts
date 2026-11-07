@@ -35,7 +35,7 @@ import {
 import type { ISODate } from './dates';
 import { chestFromRoll } from './rewards';
 import { sanitizeState } from './sanitize';
-import type { AppState, CatalogItem, DayLog, ExamPeriod, Habit, HabitKind, Mood, Settings, SharedGrand, SpecialPrize } from './types';
+import type { Accent, AppState, CatalogItem, DayLog, ExamPeriod, Habit, HabitKind, Mood, Settings, SharedGrand, SpecialPrize, TextSize } from './types';
 import { deleteVault, readVault, removeLegacyPlaintext, requestPersistence, writeVault, type LockRecord, type VaultRecord } from './vault';
 
 export type Phase = 'loading' | 'setup' | 'locked' | 'unlocked';
@@ -401,6 +401,24 @@ export const actions = {
 
   setTheme(theme: Settings['theme']) {
     updateSettings((s) => ({ ...s, theme }));
+  },
+
+  setAccent(accent: Accent) {
+    updateSettings((s) => {
+      const next = { ...s };
+      if (accent === 'verde') delete next.accent;
+      else next.accent = accent;
+      return next;
+    });
+  },
+
+  setTextSize(size: TextSize) {
+    updateSettings((s) => {
+      const next = { ...s };
+      if (size === 'normal') delete next.textSize;
+      else next.textSize = size;
+      return next;
+    });
   },
 
   setAutoLock(minutes: number) {

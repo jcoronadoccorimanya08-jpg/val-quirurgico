@@ -11,6 +11,7 @@ import { diffDays, formatLong, formatShort, isValidISODate, localDateOf, nextMon
 import { cyclePhase, habitLabel } from '../lib/engine';
 import { toast } from '../lib/feedback';
 import { useInstallPrompt } from '../lib/hooks';
+import { ACCENTS, THEMES } from '../lib/look';
 import { buildReport } from '../lib/report';
 import {
   actions,
@@ -24,7 +25,7 @@ import {
   replaceState,
   verifyPattern,
 } from '../lib/store';
-import type { AppState, Habit, Theme } from '../lib/types';
+import type { AppState, Habit } from '../lib/types';
 import type { VaultRecord } from '../lib/vault';
 
 type Pending = { kind: 'start'; date: ISODate } | { kind: 'restart'; date: ISODate } | { kind: 'restore'; state: AppState } | null;
@@ -289,15 +290,40 @@ export function SettingsScreen({ state, today, hasBio }: { state: AppState; toda
       <SectionTitle>Apariencia</SectionTitle>
       <div className="group">
         <div className="item col">
-          <div className="segmented" role="group" aria-label="Tema">
+          <div className="txt">
+            <b>Tema</b>
+            <span>Negro puro ahorra batería en pantallas AMOLED.</span>
+          </div>
+          <div className="segmented" role="group" aria-label="Tema" style={{ marginTop: 10 }}>
+            {THEMES.map(([t, label]) => (
+              <button key={t} type="button" aria-pressed={s.theme === t} onClick={() => actions.setTheme(t)}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="item col">
+          <div className="txt">
+            <b>Color</b>
+          </div>
+          <div className="swatches" role="group" aria-label="Color">
+            {ACCENTS.map(([a, label]) => (
+              <button key={a} type="button" className={`swatch sw-${a}`} aria-label={label} aria-pressed={(s.accent ?? 'verde') === a} onClick={() => actions.setAccent(a)} />
+            ))}
+          </div>
+        </div>
+        <div className="item col">
+          <div className="txt">
+            <b>Tamaño de letra</b>
+          </div>
+          <div className="segmented" role="group" aria-label="Tamaño de letra" style={{ marginTop: 10 }}>
             {(
               [
-                ['system', 'Automático'],
-                ['dark', 'Oscuro'],
-                ['light', 'Claro'],
-              ] as [Theme, string][]
-            ).map(([t, label]) => (
-              <button key={t} type="button" aria-pressed={s.theme === t} onClick={() => actions.setTheme(t)}>
+                ['normal', 'Normal'],
+                ['grande', 'Grande'],
+              ] as const
+            ).map(([z, label]) => (
+              <button key={z} type="button" aria-pressed={(s.textSize ?? 'normal') === z} onClick={() => actions.setTextSize(z)}>
                 {label}
               </button>
             ))}

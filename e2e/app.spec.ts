@@ -58,8 +58,8 @@ test('crea el patrón, gana el día con 65% y lo protege al recargar', async ({ 
   // Todo queda cifrado: los nombres no aparecen en el almacenamiento
   const raw = await page.evaluate(() => localStorage.getItem('val-quirurgico.vault') ?? '');
   expect(raw.length).toBeGreaterThan(100);
-  expect(raw).not.toContain('Gym');
-  expect(raw).not.toContain('Rutina');
+  expect(raw).not.toContain('Bloque profundo');
+  expect(raw).not.toContain('Rutina de la mañana');
 });
 
 test('ánimo del día con un toque e insignias en Premios', async ({ page }) => {
@@ -142,7 +142,7 @@ test('respaldo: se copia como texto y se restaura con su patrón', async ({ page
   await expect(page.getByRole('status').filter({ hasText: 'Respaldo copiado' })).toBeVisible();
   const text = await page.evaluate(() => navigator.clipboard.readText());
   expect(text).toContain('"app":"val-quirurgico"');
-  expect(text).not.toContain('Gym');
+  expect(text).not.toContain('Bloque profundo');
 
   await page.getByRole('button', { name: 'Restaurar pegando el texto' }).click();
   await page.getByLabel('Texto del respaldo').fill(text);
@@ -204,6 +204,26 @@ test('«Cómo funciona»: aviso la primera vez y guía en Ajustes', async ({ pag
   await page.locator('nav.nav').getByRole('button', { name: 'Ajustes' }).click();
   await page.getByRole('button', { name: 'Ver', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'Cómo funciona' })).toBeVisible();
+});
+
+test('apariencia: negro puro, color y letra grande, también en el bloqueo', async ({ page }) => {
+  await onboard(page, { exam: false });
+  await page.locator('nav.nav').getByRole('button', { name: 'Ajustes' }).click();
+  await page.getByRole('group', { name: 'Tema' }).getByRole('button', { name: 'Negro' }).click();
+  await page.getByRole('group', { name: 'Color' }).getByRole('button', { name: 'Violeta' }).click();
+  await page.getByRole('group', { name: 'Tamaño de letra' }).getByRole('button', { name: 'Grande' }).click();
+  const html = page.locator('html');
+  await expect(html).toHaveAttribute('data-theme', 'black');
+  await expect(html).toHaveAttribute('data-accent', 'violeta');
+  await expect(html).toHaveAttribute('data-size', 'grande');
+  expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe('rgb(0, 0, 0)');
+  await page.reload();
+  await expect(page.getByText('Dibuja tu patrón')).toBeVisible();
+  await expect(html).toHaveAttribute('data-theme', 'black');
+  await expect(html).toHaveAttribute('data-accent', 'violeta');
+  await draw(page, PATTERN);
+  await expect(page.getByRole('heading', { name: 'Día 1 de 90' })).toBeVisible();
+  await expect(html).toHaveAttribute('data-size', 'grande');
 });
 
 test('la bienvenida funciona sin internet y explica cómo instalar', async ({ page }) => {
