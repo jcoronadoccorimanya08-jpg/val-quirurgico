@@ -1,58 +1,58 @@
 # Val quirúrgico
 
-App para el celular que acompaña un ciclo de **90 días**: 3 rachas núcleo, hábitos secundarios y **un premio por cada semana cumplida**.
-Funciona sin internet, se instala con su propio ícono y guarda los datos solo en el teléfono.
+App para el celular que acompaña un ciclo de **90 días**: 4 rachas núcleo, hábitos secundarios, un **porcentaje por día** y un **fondo de premios** que crece con cada semana ganada.
+Funciona sin internet, se instala con su propio ícono y guarda todo **cifrado** en el teléfono, protegido con **patrón y huella**.
 
 **Abrir la app:** https://jcoronadoccorimanya08-jpg.github.io/val-quirurgico/
 
 ## Instalarla en Android (Samsung)
 
-1. Abre el link en **Chrome**.
-2. Toca **Instalar** en el aviso que aparece abajo, o abre el menú **⋮ → Instalar aplicación**.
-3. Ábrela desde el ícono **Val Q** de tu pantalla de inicio.
+1. Copia el link y ábrelo en **Chrome** (no dentro de otra app).
+2. Toca **Instalar** en la tarjeta verde, o el menú **⋮ → Instalar aplicación**.
+3. Ábrela desde el ícono **Val Q**. Si no está en la pantalla de inicio, búscala en tus aplicaciones.
 
 ## Cómo funciona
 
-- **Las 3 rachas del núcleo:** dormir de 23:00 a 6:00, gym y un bloque profundo de estudio sin celular. Cada una tiene una **versión mínima** para los días malos, y la versión mínima también cuenta.
-- **Día completo:** cuando marcas las 3.
-- **Semanas y premios:** el ciclo se divide en 12 semanas de 7 días y un tramo final (días 85 a 90). Ganas el premio de la semana con **6 de 7 días completos**, y el tramo final con 5 de 6. La meta se puede ajustar en Ajustes.
-- **Secundarios:** Anki, Atrium, ajedrez, etc. Se marcan sin presión y también llevan su racha.
-- **Corregir días:** con las flechas, o tocando un día en *Avance*, puedes marcar días anteriores.
-- **Reporte para Claude:** en Ajustes, copia o comparte tu resumen de la semana y pégalo en Claude para recibir un análisis.
+- **Núcleo (4):** dormir, rutina de la mañana, gym y bloque profundo de estudio. Cada uno tiene una **versión mínima** para los días malos, que también cuenta.
+- **Porcentaje del día:** el núcleo vale 60 % y los secundarios 40 %. **Ganas el día con 65 % o más.** Sin el núcleo no se puede ganar.
+- **Modo examen:** en esas fechas solo cuenta el núcleo y ganas el día con 3 de 4.
+- **Semanas:** 12 semanas de 7 días y un tramo final. Ganas la semana con **6 de 7 días ganados**.
+- **Fondo de premios:** cada semana ganada suma **Bs 100**. Con el fondo canjeas los premios de tu lista (cada uno con su precio).
+- **Cofre sorpresa** por cada semana ganada (+20 o +50 Bs, un comodín o una noche de peli) y **comodín** cada 2 semanas ganadas, para salvar un día malo.
+- **Premio especial** con fecha (por ejemplo, un viaje): se desbloquea desde una fecha si ganaste las semanas que elijas. Se escribe en la app.
+- **Avance:** tu montaña (promedio de 7 días y cada día), mapa del ciclo, semanas y cada hábito.
+- **Reporte:** tarjeta de la semana, **imagen** para compartir y texto para pegar en Claude.
 
 ## Tus datos
 
-- Se guardan **solo en este teléfono**, con doble copia (IndexedDB y localStorage). No hay servidores, cuentas ni analítica.
-- Haz un **respaldo** de vez en cuando (Ajustes → Respaldo → Guardar en Drive). La app te lo recuerda cada 7 días.
-- Para pasarte a otro teléfono: instala la app y elige **Restaurar un respaldo**.
+- Se guardan **solo en este teléfono** y **cifrados**: AES-GCM con una llave al azar, que se abre con tu **patrón** (PBKDF2) o con tu **huella** (passkey con PRF). No hay cuentas ni servidores.
+- **Si olvidas el patrón, los datos no se pueden recuperar.** Haz respaldos: Ajustes → Respaldo → *Guardar en Drive o compartir*, *Guardar en el celular* o *Copiar respaldo*. El respaldo es un `.txt` cifrado que se abre con tu patrón.
 
 ## Desarrollo
 
 Requiere Node 22.
 
 ```bash
-npm ci            # instalar dependencias
+npm ci
 npm run dev       # servidor de desarrollo
-npm test          # pruebas de las reglas (Vitest)
-npm run e2e       # pruebas en un teléfono simulado (Playwright)
-npm run check     # todo lo anterior + build, antes de subir cambios
-npm run icons     # regenerar los íconos desde el diseño vectorial
+npm test          # reglas, premios y cifrado (Vitest)
+npm run e2e       # pruebas en un teléfono simulado (Playwright), incluida la huella simulada
+npm run check     # todo lo anterior + build
+npm run icons     # regenerar los íconos
 ```
 
-Cada `push` a `main` corre las pruebas y, si pasan, publica en GitHub Pages (`.github/workflows/deploy.yml`).
-Cuando hay una versión nueva, la app instalada muestra el aviso **«Hay una versión nueva → Actualizar»**.
+Cada `push` a `main` corre las pruebas y, si pasan, publica en GitHub Pages. La app instalada muestra **«Hay una versión nueva → Actualizar»**.
 
 ### Estructura
 
 | Ruta | Qué contiene |
 | --- | --- |
-| `src/lib/engine.ts` | Reglas del ciclo: semanas, metas, rachas y estadísticas (funciones puras) |
-| `src/lib/dates.ts` | Fechas en hora de La Paz y formato en español |
-| `src/lib/storage.ts` | Guardado local y validación de datos |
-| `src/lib/store.ts` | Estado de la app y acciones |
-| `src/screens/` | Pantallas: Hoy, Premios, Avance, Ajustes y la bienvenida |
-| `tests/` | Pruebas unitarias |
-| `e2e/` | Pruebas de punta a punta en un Galaxy simulado |
+| `src/lib/engine.ts` | Reglas: porcentaje del día, modo examen, semanas, rachas y estadísticas |
+| `src/lib/rewards.ts` | Fondo, cofres, comodines y premio especial |
+| `src/lib/crypto.ts`, `biometric.ts`, `vault.ts` | Cifrado, huella (passkeys) y bóveda local |
+| `src/lib/store.ts` | Estado, bloqueo y acciones |
+| `src/screens/` | Hoy, Premios, Avance, Ajustes, bienvenida y bloqueo |
+| `tests/`, `e2e/` | Pruebas unitarias y en un Galaxy simulado |
 
 ## Créditos
 

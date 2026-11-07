@@ -1,58 +1,65 @@
+/**
+ * Respaldo cifrado como texto (.txt). Chrome en Android no deja compartir archivos .json,
+ * pero sí .txt: así se puede mandar a Drive, WhatsApp o guardar en Archivos. También se puede copiar.
+ */
 import { todayISO } from './dates';
-import { sanitizeState } from './storage';
-import type { AppState } from './types';
+import { isWrapped } from './crypto';
+import type { VaultRecord } from './vault';
 
 const APP_ID = 'val-quirurgico';
 
-export interface BackupFile {
+type BackupRecord = Pick<VaultRecord, 'v' | 'lock' | 'data'>;
+
+interface BackupFile {
   app: typeof APP_ID;
-  schema: 1;
+  kind: 'backup';
+  schema: 2;
   exportedAt: string;
-  state: AppState;
+  vault: BackupRecord;
 }
 
 export function backupFileName(): string {
-  return `val-quirurgico-respaldo-${todayISO()}.json`;
+  return `val-q-respaldo-${todayISO()}.txt`;
 }
 
-export function serializeBackup(state: AppState): string {
-  const file: BackupFile = { app: APP_ID, schema: 1, exportedAt: new Date().toISOString(), state };
-  return JSON.stringify(file, null, 1);
+export function serializeBackup(record: BackupRecord): string {
+  const file: BackupFile = { app: APP_ID, kind: 'backup', schema: 2, exportedAt: new Date().toISOString(), vault: record };
+  return JSON.stringify(file);
 }
 
-/** Lee un respaldo. Lanza un Error con un mensaje claro si el archivo no sirve. */
-export function parseBackup(text: string): AppState {
+/** Lee un respaldo (archivo o texto pegado). Lanza un Error con un mensaje claro si no sirve. */
+export function parseBackup(text: string): BackupRecord {
   let raw: unknown;
   try {
-    raw = JSON.parse(text);
+    raw = JSON.parse(text.trim());
   } catch {
-    throw new Error('El archivo no es un respaldo válido.');
+    throw new Error('El texto no es un respaldo válido.');
   }
-  const file = raw as Partial<BackupFile> | null;
-  if (!file || file.app !== APP_ID) throw new Error('Este archivo no es un respaldo de Val quirúrgico.');
-  const state = sanitizeState(file.state);
-  if (!state || !state.settings) throw new Error('El respaldo está incompleto o dañado.');
-  return state;
+  const f = raw as Partial<BackupFile> | null;
+  if (!f || f.app !== APP_ID) throw new Error('Este respaldo no es de Val Q.');
+  const v = f.vault;
+  if (!v || v.v !== 2 || !isWrapped(v.data) || !v.lock?.pattern || !isWrapped(v.lock.pattern.wrapped)) {
+    throw new Error('Este respaldo es de una versión anterior o está dañado.');
+  }
+  return { v: 2, lock: { pattern: v.lock.pattern }, data: v.data };
 }
 
-function backupBlob(state: AppState): Blob {
-  return new Blob([serializeBackup(state)], { type: 'application/json' });
+function textFile(text: string): File {
+  return new File([text], backupFileName(), { type: 'text/plain' });
 }
 
 export function canShareFiles(): boolean {
   try {
-    const probe = new File(['{}'], 'probe.json', { type: 'application/json' });
-    return typeof navigator.canShare === 'function' && navigator.canShare({ files: [probe] });
+    return typeof navigator.canShare === 'function' && navigator.canShare({ files: [textFile('{}')] });
   } catch {
     return false;
   }
 }
 
-/** Abre el menú de compartir de Android (Drive, WhatsApp, correo…) con el archivo de respaldo. */
-export async function shareBackup(state: AppState): Promise<'shared' | 'cancelled'> {
-  const file = new File([backupBlob(state)], backupFileName(), { type: 'application/json' });
+/** Abre el menú de compartir de Android (Drive, WhatsApp, Archivos…). */
+export async function shareBackupText(text: string): Promise<'shared' | 'cancelled'> {
   try {
-    await navigator.share({ files: [file], title: 'Respaldo de Val quirúrgico' });
+    await navigator.share({ files: [textFile(text)], title: 'Respaldo de Val Q' });
     return 'shared';
   } catch (err) {
     if (err instanceof DOMException && err.name === 'AbortError') return 'cancelled';
@@ -60,8 +67,8 @@ export async function shareBackup(state: AppState): Promise<'shared' | 'cancelle
   }
 }
 
-export function downloadBackup(state: AppState): void {
-  const url = URL.createObjectURL(backupBlob(state));
+export function downloadBackupText(text: string): void {
+  const url = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
   const a = document.createElement('a');
   a.href = url;
   a.download = backupFileName();

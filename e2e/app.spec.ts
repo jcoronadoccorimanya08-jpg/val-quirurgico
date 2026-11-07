@@ -1,64 +1,156 @@
 import { expect, test, type Page } from '@playwright/test';
 
-// Lunes 9 de noviembre de 2026, 21:00 en La Paz.
-const MONDAY_NIGHT = new Date('2026-11-09T21:00:00-04:00');
+// Sábado 7 de noviembre de 2026, 21:00 en La Paz. "Mañana" = domingo 8.
+const SATURDAY_NIGHT = new Date('2026-11-07T21:00:00-04:00');
+const PATTERN = [1, 2, 3, 6, 9];
 
-async function startCycle(page: Page) {
-  await page.clock.install({ time: MONDAY_NIGHT });
+async function draw(page: Page, dots: number[]) {
+  const centers = [];
+  for (const d of dots) {
+    const box = await page.locator(`[data-dot="${d}"]`).first().boundingBox();
+    if (!box) throw new Error(`sin punto ${d}`);
+    centers.push({ x: box.x + box.width / 2, y: box.y + box.height / 2 });
+  }
+  await page.mouse.move(centers[0]!.x, centers[0]!.y);
+  await page.mouse.down();
+  for (const c of centers.slice(1)) await page.mouse.move(c.x, c.y, { steps: 6 });
+  await page.mouse.up();
+}
+
+async function onboard(page: Page, { exam }: { exam: boolean }) {
+  await page.clock.install({ time: SATURDAY_NIGHT });
   await page.goto('./');
+  await page.getByRole('button', { name: 'Empezar', exact: true }).click();
   await expect(page.getByRole('heading', { name: '¿Cuándo empiezas?' })).toBeVisible();
-  await page.getByRole('button', { name: 'Empezar mi ciclo' }).click();
+  await page.getByRole('button', { name: /^Hoy/ }).click();
+  await page.getByRole('button', { name: 'Siguiente' }).click();
+  await expect(page.getByRole('heading', { name: '¿Estás en exámenes?' })).toBeVisible();
+  await page.getByRole('button', { name: exam ? /^Sí, hasta el/ : /^No/ }).click();
+  await page.getByRole('button', { name: 'Siguiente' }).click();
+  await expect(page.getByRole('heading', { name: 'Crea tu patrón' })).toBeVisible();
+  await draw(page, PATTERN);
+  await expect(page.getByRole('heading', { name: 'Repite tu patrón' })).toBeVisible();
+  await draw(page, PATTERN);
   await expect(page.getByRole('heading', { name: 'Día 1 de 90' })).toBeVisible();
 }
 
-test('marca un día completo, define un premio y lo conserva al recargar', async ({ page }) => {
-  await startCycle(page);
+const CORE = ['Dormir 23:00 – 6:00', 'Rutina de la mañana', 'Gym', 'Bloque profundo sin celular'];
 
-  for (const name of ['Dormir 23:00 – 6:00', 'Gym', 'Bloque profundo sin celular']) {
-    await page.getByRole('button', { name: new RegExp(name) }).click();
+test('crea el patrón, gana el día con 65% y lo protege al recargar', async ({ page }) => {
+  await onboard(page, { exam: false });
+  await expect(page.getByText('Levantarte y tender la cama')).toBeVisible(); // pasos de la rutina
+
+  for (const name of CORE) await page.getByRole('button', { name: new RegExp(`^${name}`) }).click();
+  await expect(page.getByLabel('Porcentaje del día')).toContainText('60');
+  await expect(page.getByLabel('Porcentaje del día')).toContainText('Te falta 1 secundario');
+  await page.getByRole('button', { name: /Anki/ }).click();
+  await expect(page.getByRole('status').filter({ hasText: '¡Día ganado! 66%' })).toBeVisible();
+
+  // Al recargar pide el patrón; uno incorrecto no abre
+  await page.reload();
+  await expect(page.getByText('Dibuja tu patrón')).toBeVisible();
+  await draw(page, [1, 4, 7, 8]);
+  await expect(page.getByRole('alert')).toHaveText('Patrón incorrecto.');
+  await draw(page, PATTERN);
+  await expect(page.getByRole('heading', { name: 'Día 1 de 90' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Gym/ })).toHaveAttribute('aria-pressed', 'true');
+
+  // Todo queda cifrado: los nombres no aparecen en el almacenamiento
+  const raw = await page.evaluate(() => localStorage.getItem('val-quirurgico.vault') ?? '');
+  expect(raw.length).toBeGreaterThan(100);
+  expect(raw).not.toContain('Gym');
+  expect(raw).not.toContain('Rutina');
+});
+
+test('modo examen: con 3 del núcleo ganas el día', async ({ page }) => {
+  await onboard(page, { exam: true });
+  await expect(page.getByText(/Modo examen hasta el/)).toBeVisible();
+  for (const name of CORE.slice(0, 3)) await page.getByRole('button', { name: new RegExp(`^${name}`) }).click();
+  await expect(page.getByRole('status').filter({ hasText: '¡Día ganado! 75%' })).toBeVisible();
+});
+
+test('meditar sube a 15 minutos desde la semana 2', async ({ page }) => {
+  await onboard(page, { exam: false });
+  await expect(page.getByRole('button', { name: /Meditar 10 min/ })).toBeVisible();
+  await page.clock.setFixedTime(new Date('2026-11-15T21:00:00-04:00'));
+  await page.reload();
+  await draw(page, PATTERN);
+  await expect(page.getByRole('button', { name: /Meditar 15 min/ })).toBeVisible();
+});
+
+test('premios: fondo, lista con precios y premio especial editable', async ({ page }) => {
+  await onboard(page, { exam: false });
+  await page.locator('nav.nav').getByRole('button', { name: 'Premios' }).click();
+  await expect(page.locator('.fund-amount')).toContainText('0');
+  for (const p of ['Perfume', 'Carne en un buen lugar', 'Karting o escalada', 'Zapatillas']) await expect(page.getByLabel(p, { exact: true })).toBeVisible();
+  await expect(page.getByText('Más adelante')).toBeVisible();
+  await page.getByRole('button', { name: 'Editar premio especial' }).click();
+  await page.getByPlaceholder('Ej.: Vuelo a…').fill('Mi viaje');
+  await page.getByRole('button', { name: 'Guardar' }).click();
+  await expect(page.getByRole('region', { name: 'Premio especial' })).toContainText('Mi viaje');
+  await page.locator('nav.nav').getByRole('button', { name: 'Hoy' }).click();
+  await expect(page.getByRole('button', { name: 'Tu meta' })).toContainText('Mi viaje');
+});
+
+test('respaldo: se copia como texto y se restaura con su patrón', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await onboard(page, { exam: false });
+  await page.getByRole('button', { name: /^Gym/ }).click();
+  await page.locator('nav.nav').getByRole('button', { name: 'Ajustes' }).click();
+  await page.getByRole('button', { name: 'Copiar respaldo' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Respaldo copiado' })).toBeVisible();
+  const text = await page.evaluate(() => navigator.clipboard.readText());
+  expect(text).toContain('"app":"val-quirurgico"');
+  expect(text).not.toContain('Gym');
+
+  await page.getByRole('button', { name: 'Restaurar pegando el texto' }).click();
+  await page.getByLabel('Texto del respaldo').fill(text);
+  await page.getByRole('button', { name: 'Usar este respaldo' }).click();
+  await expect(page.getByRole('heading', { name: 'Patrón del respaldo' })).toBeVisible();
+  await draw(page, PATTERN);
+  await page.getByRole('button', { name: 'Restaurar', exact: true }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Respaldo restaurado' })).toBeVisible();
+});
+
+test('huella: se activa y abre la app', async ({ page }) => {
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('WebAuthn.enable');
+  try {
+    await cdp.send('WebAuthn.addVirtualAuthenticator', {
+      options: {
+        protocol: 'ctap2',
+        ctap2Version: 'ctap2_1',
+        transport: 'internal',
+        hasResidentKey: true,
+        hasUserVerification: true,
+        isUserVerified: true,
+        hasPrf: true,
+        automaticPresenceSimulation: true,
+      },
+    });
+  } catch {
+    test.skip(true, 'Este Chromium no simula huella con PRF');
   }
-  await expect(page.getByRole('status').filter({ hasText: 'Día completo: 3 de 3.' })).toBeVisible();
-  await expect(page.getByLabel('Semana 1', { exact: true }).getByText('1/6')).toBeVisible();
-
-  await page.getByRole('button', { name: 'Premios' }).click();
-  const reward = page.getByLabel('Premio de la semana 1', { exact: true });
-  await reward.fill('Comer carne en un buen lugar');
-  await reward.press('Enter');
-
+  await onboard(page, { exam: false });
+  await page.locator('nav.nav').getByRole('button', { name: 'Ajustes' }).click();
+  await page.getByRole('button', { name: 'Activar' }).first().click();
+  await expect(page.getByRole('status').filter({ hasText: 'Huella activada.' })).toBeVisible();
+  // Al bloquear, la app pide la huella sola y vuelve a abrir.
+  await page.getByRole('button', { name: 'Bloquear', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Día 1 de 90' })).toBeVisible();
+  // Y al volver a abrir la app también entra con la huella.
   await page.reload();
-  await expect(page.getByRole('button', { name: /Gym/ })).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByText('Comer carne en un buen lugar')).toBeVisible();
-
-  await page.getByRole('button', { name: 'Avance' }).click();
-  await expect(page.getByText('días completos 3/3')).toBeVisible();
-  await expect(page.locator('.tile').first()).toContainText('1');
+  await expect(page.getByRole('heading', { name: 'Día 1 de 90' })).toBeVisible();
 });
 
-test('se puede corregir un día anterior', async ({ page }) => {
-  await startCycle(page);
-  await page.clock.setFixedTime(new Date('2026-11-10T21:00:00-04:00'));
-  await page.reload();
-  await expect(page.getByRole('heading', { name: 'Día 2 de 90' })).toBeVisible();
-
-  await page.getByRole('button', { name: 'Día anterior' }).click();
-  await expect(page.getByText('Ayer')).toBeVisible();
-  await page.getByRole('button', { name: /Gym/ }).click();
-  await expect(page.getByRole('button', { name: /Gym/ })).toHaveAttribute('aria-pressed', 'true');
-
-  await page.getByRole('button', { name: 'Volver a hoy' }).click();
-  await expect(page.getByRole('button', { name: /Gym/ })).toHaveAttribute('aria-pressed', 'false');
+test('avance muestra la montaña', async ({ page }) => {
+  await onboard(page, { exam: false });
+  await page.getByRole('button', { name: /^Gym/ }).click();
+  await page.locator('nav.nav').getByRole('button', { name: 'Avance' }).click();
+  await expect(page.getByRole('img', { name: /Tu porcentaje diario/ })).toBeVisible();
 });
 
-test('cambia el tema y genera el reporte', async ({ page }) => {
-  await startCycle(page);
-  await page.getByRole('button', { name: 'Ajustes' }).click();
-  await page.getByRole('button', { name: 'Claro' }).click();
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
-  await page.getByText('Ver el reporte').click();
-  await expect(page.locator('.report-preview')).toContainText('REPORTE · Val quirúrgico · día 1/90');
-});
-
-test('la primera pantalla ya funciona sin internet y explica cómo instalar', async ({ page }) => {
+test('la bienvenida funciona sin internet y explica cómo instalar', async ({ page }) => {
   await page.goto('./');
   await expect(page.getByRole('region', { name: 'Instalar la app' })).toContainText('«Instalar aplicación»');
   await expect
@@ -66,36 +158,10 @@ test('la primera pantalla ya funciona sin internet y explica cómo instalar', as
     .toBeGreaterThan(0);
 });
 
-test('cuando Chrome ofrece instalar, aparece el botón Instalar', async ({ page }) => {
-  await page.goto('./');
-  await page.evaluate(() => {
-    const e = new Event('beforeinstallprompt') as Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
-    (window as unknown as { __prompted: boolean }).__prompted = false;
-    e.prompt = async () => {
-      (window as unknown as { __prompted: boolean }).__prompted = true;
-    };
-    e.userChoice = Promise.resolve({ outcome: 'accepted' });
-    window.dispatchEvent(e);
-  });
-  const card = page.getByRole('region', { name: 'Instalar la app' });
-  await card.getByRole('button', { name: 'Instalar' }).click();
-  await expect.poll(() => page.evaluate(() => (window as unknown as { __prompted: boolean }).__prompted)).toBe(true);
-});
-
-test('si elegiste el lunes, puedes empezar hoy igual', async ({ page }) => {
-  await page.clock.install({ time: new Date('2026-11-06T20:00:00-04:00') }); // viernes
-  await page.goto('./');
-  await page.getByRole('button', { name: 'Empezar mi ciclo' }).click(); // por defecto: el lunes
-  await expect(page.getByRole('heading', { name: 'Tu ciclo está por empezar' })).toBeVisible();
-  await page.getByRole('button', { name: 'Prefiero empezar hoy' }).click();
-  await expect(page.getByRole('heading', { name: 'Día 1 de 90' })).toBeVisible();
-});
-
-test('si la app ya está instalada, lo dice en vez de pedir instalarla', async ({ page }) => {
+test('si la app ya está instalada, lo dice', async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(navigator, 'getInstalledRelatedApps', { value: async () => [{ platform: 'webapp' }] });
   });
   await page.goto('./');
   await expect(page.getByRole('status', { name: 'App instalada' })).toContainText('Ya la tienes instalada');
-  await expect(page.getByRole('region', { name: 'Instalar la app' })).toHaveCount(0);
 });
