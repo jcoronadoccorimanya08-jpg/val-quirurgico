@@ -53,3 +53,19 @@ describe('respaldo en texto', () => {
     expect(() => parseBackup('{"app":"bitacora"}')).toThrow('Este respaldo no es de Val Q.');
   });
 });
+
+describe('pegar el respaldo sin dolores de cabeza', () => {
+  it('si pegas solo el nombre del archivo, te lo dice', () => {
+    expect(() => parseBackup('val-q-respaldo-2026-11-15.txt')).toThrow('Pegaste solo el nombre del archivo');
+  });
+
+  it('acepta texto de más alrededor y caracteres invisibles', async () => {
+    const salt = randomBytes(16);
+    const record = {
+      v: 2 as const,
+      lock: { pattern: { iter: ITER, salt: toB64(salt), wrapped: await encryptBytes(await deriveKey('1-5-9', salt, ITER), newDataKey()) } },
+      data: await encryptJSON(await importDataKey(newDataKey()), { x: 1 }),
+    };
+    expect(parseBackup(`Respaldo:\n​${serializeBackup(record)}\n`)).toEqual(record);
+  });
+});
