@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { celebrate } from '../components/Confetti';
 import { GoalCard } from '../components/GoalCard';
 import { Icon } from '../components/Icon';
+import { HowItWorks, WhatsNewBanner } from '../components/HowItWorks';
 import { InstallCard } from '../components/InstallCard';
 import { MoodPicker } from '../components/MoodPicker';
 import { SectionTitle } from '../components/ui';
@@ -60,6 +61,7 @@ export function TodayScreen({ state, today, hasBio, selected, onSelect, onGoRewa
   const w = weights(s, selected);
   const wild = wildcards(state, allSegmentProgress(s, state.days, today));
   const usedWildcard = Boolean(state.days[selected]?.wildcard);
+  const [help, setHelp] = useState(false);
 
   const onToggle = (kind: HabitKind, id: string) => {
     if (!editable) return;
@@ -127,6 +129,7 @@ export function TodayScreen({ state, today, hasBio, selected, onSelect, onGoRewa
       <GoalCard state={state} today={today} onOpen={onGoRewards} />
       {!hasBio && <BioPromo />}
       <InstallCard appName="Val Q" dismissible />
+      <WhatsNewBanner onOpen={() => setHelp(true)} />
       {needsBackup(s, state, today) && (
         <div className="banner">
           <Icon name="shield" />
@@ -268,6 +271,7 @@ export function TodayScreen({ state, today, hasBio, selected, onSelect, onGoRewa
           <p className="fine">Márcalo cada noche, antes de las 23:00. Si un día se te pasó, vuelve atrás y corrígelo.</p>
         </>
       )}
+      {help && <HowItWorks s={s} onClose={() => setHelp(false)} />}
     </>
   );
 }

@@ -191,6 +191,21 @@ test('avance muestra la montaña', async ({ page }) => {
   await expect(page.getByRole('img', { name: /Tu porcentaje diario/ })).toBeVisible();
 });
 
+test('«Cómo funciona»: aviso la primera vez y guía en Ajustes', async ({ page }) => {
+  await onboard(page, { exam: false });
+  const banner = page.getByRole('region', { name: 'Cómo funciona' });
+  await expect(banner).toContainText('¿Cómo funciona Val Q?');
+  await banner.getByRole('button', { name: 'Ver' }).click();
+  const help = page.getByRole('dialog', { name: 'Cómo funciona' });
+  await expect(help).toContainText('Insignias');
+  await expect(help).toContainText(/semana victoriosa/i);
+  await help.getByRole('button', { name: 'Entendido' }).click();
+  await expect(banner).toHaveCount(0);
+  await page.locator('nav.nav').getByRole('button', { name: 'Ajustes' }).click();
+  await page.getByRole('button', { name: 'Ver', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Cómo funciona' })).toBeVisible();
+});
+
 test('la bienvenida funciona sin internet y explica cómo instalar', async ({ page }) => {
   await page.goto('./');
   await expect(page.getByRole('region', { name: 'Instalar la app' })).toContainText('«Instalar aplicación»');
