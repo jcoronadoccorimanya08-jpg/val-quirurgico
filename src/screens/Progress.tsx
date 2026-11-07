@@ -190,6 +190,25 @@ export function ProgressScreen({ state, today, onOpenDay }: Props) {
           </section>
         </>
       )}
+
+      {state.history && state.history.length > 0 && (
+        <>
+          <SectionTitle aside={`${state.history.length}`}>Ciclos anteriores</SectionTitle>
+          <div className="group" aria-label="Ciclos anteriores">
+            {[...state.history].reverse().map((c) => (
+              <div key={c.archivedAt + c.start} className="item">
+                <div className="txt">
+                  <b>{formatRange(c.start, c.end)}</b>
+                  <span>
+                    {c.daysWon} de {c.days} días ganados · promedio {c.avgPct} % · {c.weeksWon}/{c.weeksTotal} semanas · {c.badges}{' '}
+                    {c.badges === 1 ? 'insignia' : 'insignias'} · Bs {c.fundEarned} al fondo
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </>
   );
 }

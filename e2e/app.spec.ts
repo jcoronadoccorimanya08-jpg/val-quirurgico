@@ -226,6 +226,27 @@ test('apariencia: negro puro, color y letra grande, también en el bloqueo', asy
   await expect(html).toHaveAttribute('data-size', 'grande');
 });
 
+test('modo viaje: solo cuenta lo que elegiste', async ({ page }) => {
+  await onboard(page, { exam: false });
+  await page.locator('nav.nav').getByRole('button', { name: 'Ajustes' }).click();
+  await page.getByRole('switch', { name: 'Modo viaje' }).click();
+  await expect(page.getByRole('group', { name: 'Hábitos que cuentan en el viaje' }).getByRole('button', { name: /Gym/ })).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('nav.nav').getByRole('button', { name: 'Hoy' }).click();
+  await expect(page.getByLabel('Porcentaje del día')).toContainText('Modo viaje hasta el');
+  await expect(page.getByRole('button', { name: /Anki/ })).toContainText('no cuenta');
+  for (const name of CORE.slice(0, 3)) await page.getByRole('button', { name: new RegExp(`^${name}`) }).click();
+  await expect(page.getByRole('status').filter({ hasText: '¡Día ganado! 75%' })).toBeVisible();
+});
+
+test('historial: al empezar un ciclo nuevo queda el resumen del anterior', async ({ page }) => {
+  await onboard(page, { exam: false });
+  await page.locator('nav.nav').getByRole('button', { name: 'Ajustes' }).click();
+  await page.getByRole('button', { name: 'Nuevo', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Empezar' }).click();
+  await page.locator('nav.nav').getByRole('button', { name: 'Avance' }).click();
+  await expect(page.getByLabel('Ciclos anteriores')).toContainText('días ganados');
+});
+
 test('la bienvenida funciona sin internet y explica cómo instalar', async ({ page }) => {
   await page.goto('./');
   await expect(page.getByRole('region', { name: 'Instalar la app' })).toContainText('«Instalar aplicación»');

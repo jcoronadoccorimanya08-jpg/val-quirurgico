@@ -2357,3 +2357,23 @@ dialog::backdrop {
 .help li + li {
   margin-top: 6px;
 }
+
+/* ---------- Modo viaje ---------- */
+.habit.off,
+.row.off {
+  opacity: 0.55;
+}
+.trip-habits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.trip-habits .chip {
+  min-height: 48px;
+}
+.trip-habits .chip[aria-pressed='true'] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--text);
+}

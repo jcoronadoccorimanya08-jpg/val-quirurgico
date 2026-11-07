@@ -81,3 +81,49 @@ describe('apariencia', () => {
     expect(odd?.settings.textSize).toBeUndefined();
   });
 });
+
+describe('modo viaje', () => {
+  it('esos días solo cuentan los hábitos elegidos, con su propia meta', async () => {
+    const { countedHabits, dayPct, goalOn, isWon, neededToWin } = await import('../src/lib/engine');
+    const st = initialState(START, null);
+    const sueno = DEFAULT_CORE[0]!.id;
+    const rutina = DEFAULT_CORE[1]!.id;
+    const anki = DEFAULT_EXTRAS[0]!.id;
+    const s = { ...st.settings, exam: null, trip: { from: '2026-12-22', to: '2026-12-30', habits: [sueno, rutina, anki], dayGoal: 70 } };
+    const d = '2026-12-23';
+    expect(countedHabits(s, d).core.map((h) => h.id)).toEqual([sueno, rutina]);
+    expect(goalOn(s, d)).toBe(70);
+    const days: Days = { [d]: { core: { [sueno]: true, [rutina]: true }, extra: {} } };
+    expect(dayPct(s, days, d)).toBeCloseTo(60);
+    expect(isWon(s, days, d)).toBe(false);
+    expect(neededToWin(s, days, d)).toEqual({ core: 0, extra: 1 });
+    days[d]!.extra = { [anki]: true };
+    expect(dayPct(s, days, d)).toBeCloseTo(100);
+    expect(isWon(s, days, d)).toBe(true);
+    // Fuera del viaje, todo vuelve a la normalidad
+    expect(goalOn(s, '2026-12-31')).toBe(st.settings.dayGoal);
+    expect(countedHabits(s, '2026-12-31').extras).toHaveLength(DEFAULT_EXTRAS.length);
+  });
+
+  it('se valida al restaurar y es opcional', () => {
+    const st = initialState(START, null);
+    const ok = sanitizeState({ ...st, settings: { ...st.settings, trip: { from: '2026-12-22', to: '2026-12-30', habits: ['sueno', 'sueno', 'gym'], dayGoal: 70 } } });
+    expect(ok?.settings.trip).toEqual({ from: '2026-12-22', to: '2026-12-30', habits: ['sueno', 'gym'], dayGoal: 70 });
+    expect(sanitizeState({ ...st, settings: { ...st.settings, trip: { from: '2026-12-30', to: '2026-12-22', habits: ['gym'] } } })?.settings.trip).toBeNull();
+    expect(sanitizeState({ ...st, settings: { ...st.settings, trip: { from: '2026-12-22', to: '2026-12-30', habits: [] } } })?.settings.trip).toBeNull();
+  });
+});
+
+describe('historial de ciclos', () => {
+  it('guarda un resumen del ciclo al empezar uno nuevo', async () => {
+    const { summarizeCycle } = await import('../src/lib/history');
+    const st = initialState(START, null);
+    win(st.days, rangeDates('2026-11-08', '2026-11-14'));
+    const sum = summarizeCycle(st, '2026-11-15');
+    expect(sum).toMatchObject({ start: '2026-11-08', end: '2026-11-15', days: 7, daysWon: 7, weeksWon: 1, weeksTotal: 13, badges: 0, fundEarned: 100 });
+    expect(summarizeCycle(st, '2026-11-01')).toBeNull();
+    const back = sanitizeState({ ...st, history: [sum, { start: 'x' }] });
+    expect(back?.history).toHaveLength(1);
+    expect(sanitizeState(st)?.history).toBeUndefined();
+  });
+});

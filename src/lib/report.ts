@@ -6,7 +6,9 @@ import {
   habitLabel,
   habitStats,
   isDone,
+  goalOn,
   isExamDay,
+  isTripDay,
   isWon,
   lastDays,
   moodStats,
@@ -36,7 +38,8 @@ export function buildReport(state: AppState, today: ISODate): string {
   const L: string[] = [];
 
   L.push(`VAL Q · REPORTE · día ${stats.dayNumber} de ${s.cycleLength} (${today})`);
-  if (isExamDay(s, today)) L.push(`Modo examen hasta el ${s.exam!.to}: solo cuenta el núcleo.`);
+  if (isTripDay(s, today)) L.push(`Modo viaje hasta el ${s.trip!.to}: cuentan ${s.trip!.habits.length} hábitos (meta ${goalOn(s, today)}%).`);
+  else if (isExamDay(s, today)) L.push(`Modo examen hasta el ${s.exam!.to}: solo cuenta el núcleo.`);
   L.push('');
   if (current) {
     const seg = current.segment;

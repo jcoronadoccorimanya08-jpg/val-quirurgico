@@ -10,7 +10,7 @@ export const WHATS_NEW = {
   items: [
     `Semana victoriosa con ${OTHER_NAME} y gran premio compartido.`,
     'Insignias cada 2 semanas y ánimo del día.',
-    'Apariencia: negro puro, color y letra grande (Ajustes).',
+    'Modo viaje e historial de ciclos (Ajustes → Ciclo).',
   ],
 };
 
@@ -44,6 +44,9 @@ export function HowItWorks({ s, onClose }: { s: Settings; onClose: () => void })
             </li>
             <li>
               <b>Modo examen:</b> esos días solo cuenta el núcleo, y cada hábito vale lo mismo.
+            </li>
+            <li>
+              <b>Modo viaje</b> (Ajustes → Ciclo): esas fechas solo cuentan los hábitos que elijas, con la meta que pongas. Los demás ni suman ni restan.
             </li>
             <li>Márcalo cada noche. Si un día se te pasó, vuelve atrás con la flecha y corrígelo.</li>
           </ul>

@@ -7,7 +7,7 @@ import { checkForUpdate } from '../components/UpdateBanner';
 import { ConfirmDialog, ScreenHeader, SectionTitle } from '../components/ui';
 import { canShareFiles, downloadBackupText, parseBackup, serializeBackup, shareBackupText } from '../lib/backup';
 import { AUTOLOCK_OPTIONS, MAX_EXTRAS, defaultExam } from '../lib/config';
-import { diffDays, formatLong, formatShort, isValidISODate, localDateOf, nextMonday, plural, weekday, type ISODate } from '../lib/dates';
+import { addDays, diffDays, formatLong, formatShort, isValidISODate, localDateOf, maxDate, nextMonday, plural, weekday, type ISODate } from '../lib/dates';
 import { cyclePhase, habitLabel } from '../lib/engine';
 import { toast } from '../lib/feedback';
 import { useInstallPrompt } from '../lib/hooks';
@@ -210,6 +210,91 @@ export function SettingsScreen({ state, today, hasBio }: { state: AppState; toda
             </div>
           )}
         </div>
+        <div className="item col">
+          <div className="item-row">
+            <div className="txt">
+              <b>Modo viaje</b>
+              <span>
+                {s.trip
+                  ? `Del ${formatShort(s.trip.from)} al ${formatShort(s.trip.to)}: cuentan ${s.trip.habits.length} hábitos; los demás ni suman ni restan.`
+                  : 'Desactivado. Esas fechas solo cuentan los hábitos que elijas.'}
+              </span>
+            </div>
+            <button
+              type="button"
+              className={`switch ${s.trip ? 'on' : ''}`}
+              role="switch"
+              aria-checked={Boolean(s.trip)}
+              aria-label="Modo viaje"
+              onClick={() => {
+                const from = maxDate(today, s.startDate);
+                actions.setTrip(s.trip ? null : { from, to: addDays(from, 6), habits: s.core.map((h) => h.id) });
+              }}
+            >
+              <i />
+            </button>
+          </div>
+          {s.trip && (
+            <>
+              <div className="row2" style={{ marginTop: 10 }}>
+                <label className="lbl-field">
+                  Desde
+                  <input
+                    className="field"
+                    type="date"
+                    value={s.trip.from}
+                    aria-label="Inicio del viaje"
+                    onChange={(e) => isValidISODate(e.target.value) && e.target.value <= s.trip!.to && actions.setTrip({ ...s.trip!, from: e.target.value })}
+                  />
+                </label>
+                <label className="lbl-field">
+                  Hasta
+                  <input
+                    className="field"
+                    type="date"
+                    value={s.trip.to}
+                    aria-label="Fin del viaje"
+                    onChange={(e) => isValidISODate(e.target.value) && e.target.value >= s.trip!.from && actions.setTrip({ ...s.trip!, to: e.target.value })}
+                  />
+                </label>
+              </div>
+              <div className="lbl-field">Qué cuenta esos días</div>
+              <div className="trip-habits" role="group" aria-label="Hábitos que cuentan en el viaje">
+                {[...s.core, ...s.extras].map((h) => {
+                  const on = s.trip!.habits.includes(h.id);
+                  return (
+                    <button
+                      key={h.id}
+                      type="button"
+                      className="chip"
+                      aria-pressed={on}
+                      onClick={() => {
+                        const habits = on ? s.trip!.habits.filter((x) => x !== h.id) : [...s.trip!.habits, h.id];
+                        if (habits.length) actions.setTrip({ ...s.trip!, habits });
+                        else toast('Deja al menos un hábito.');
+                      }}
+                    >
+                      {on ? '✓ ' : ''}
+                      {habitLabel(h, s.startDate, today)}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
+        {s.trip && (
+          <Stepper
+            title="Meta en el viaje"
+            note={`Ganas el día con ${s.trip.dayGoal ?? s.dayGoal}% de lo que cuenta`}
+            value={s.trip.dayGoal ?? s.dayGoal}
+            min={30}
+            max={100}
+            step={5}
+            suffix="%"
+            onChange={(v) => actions.setTrip({ ...s.trip!, dayGoal: v })}
+          />
+        )}
         <Stepper title="Meta del día" note={`Ganas el día con ${s.dayGoal}% o más`} value={s.dayGoal} min={50} max={90} step={5} suffix="%" onChange={(v) => actions.setNumber('dayGoal', v)} />
         <Stepper
           title="Peso del núcleo"
@@ -457,7 +542,7 @@ function confirmContent(p: Pending, cycleLength: number): { title: string; body:
     case 'restart':
       return {
         title: 'Empezar un ciclo nuevo',
-        body: `El nuevo ciclo de ${cycleLength} días empezaría el ${formatLong(p.date)}. Se reinician las semanas, los cofres y los canjes; tus hábitos se conservan. Haz un respaldo antes si quieres guardar este ciclo.`,
+        body: `El nuevo ciclo de ${cycleLength} días empezaría el ${formatLong(p.date)}. Se reinician las semanas, los cofres y los canjes; tus hábitos se conservan y el resumen de este ciclo queda en Avance → Ciclos anteriores. Haz un respaldo antes si quieres guardar este ciclo.`,
         confirmLabel: 'Empezar',
       };
     case 'restore':

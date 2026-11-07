@@ -27,6 +27,19 @@ export interface ExamPeriod {
   to: ISODate;
 }
 
+/**
+ * Modo viaje: en esas fechas solo cuentan los hábitos elegidos (los demás ni suman ni restan).
+ * Las fechas se escriben en la app: nunca en el código.
+ */
+export interface TripMode {
+  from: ISODate;
+  to: ISODate;
+  /** Ids de los hábitos (núcleo o secundarios) que cuentan esos días. */
+  habits: string[];
+  /** Meta del día durante el viaje (si no, la de siempre). */
+  dayGoal?: number;
+}
+
 export interface CatalogItem {
   id: string;
   name: string;
@@ -68,6 +81,8 @@ export interface Settings {
   /** Porcentaje mínimo para ganar el día. */
   dayGoal: number;
   exam: ExamPeriod | null;
+  /** Opcional: los estados guardados antes no lo tienen (se lee como null). */
+  trip?: TripMode | null;
   /** Bs que suma al fondo cada semana ganada. */
   fundPerWeek: number;
   catalog: CatalogItem[];
@@ -111,6 +126,23 @@ export interface Redemption {
   at: string;
 }
 
+/** Resumen de un ciclo terminado (se guarda al empezar uno nuevo). */
+export interface CycleSummary {
+  start: ISODate;
+  end: ISODate;
+  /** Días que contaron (marcados o pasados). */
+  days: number;
+  daysWon: number;
+  avgPct: number;
+  weeksWon: number;
+  weeksTotal: number;
+  badges: number;
+  /** Bs que entraron al fondo (semanas + bonos de cofres). */
+  fundEarned: number;
+  redeemed: number;
+  archivedAt: string;
+}
+
 export interface AppState {
   schema: 2;
   settings: Settings;
@@ -118,6 +150,8 @@ export interface AppState {
   /** Cofres abiertos, por número de semana del ciclo. */
   chests: Record<string, Chest>;
   redemptions: Redemption[];
+  /** Opcional: ciclos anteriores (los estados guardados antes no lo tienen). */
+  history?: CycleSummary[];
 }
 
 export type HabitKind = 'core' | 'extra';

@@ -32,10 +32,11 @@ import {
   randomBytes,
   toB64,
 } from './crypto';
-import type { ISODate } from './dates';
+import { todayISO, type ISODate } from './dates';
+import { summarizeCycle } from './history';
 import { chestFromRoll } from './rewards';
 import { sanitizeState } from './sanitize';
-import type { Accent, AppState, CatalogItem, DayLog, ExamPeriod, Habit, HabitKind, Mood, Settings, SharedGrand, SpecialPrize, TextSize } from './types';
+import type { Accent, AppState, CatalogItem, DayLog, ExamPeriod, Habit, HabitKind, Mood, Settings, SharedGrand, SpecialPrize, TextSize, TripMode } from './types';
 import { deleteVault, readVault, removeLegacyPlaintext, requestPersistence, writeVault, type LockRecord, type VaultRecord } from './vault';
 
 export type Phase = 'loading' | 'setup' | 'locked' | 'unlocked';
@@ -298,6 +299,12 @@ function newId(prefix: string): string {
   return `${prefix}-${toB64(randomBytes(6)).replace(/[^a-zA-Z0-9]/g, '').slice(0, 8).toLowerCase()}`;
 }
 
+/** Guarda el resumen del ciclo que termina en el historial. */
+function archive(st: AppState): AppState {
+  const sum = summarizeCycle(st, todayISO());
+  return sum ? { ...st, history: [...(st.history ?? []), sum] } : st;
+}
+
 export const actions = {
   toggle(date: ISODate, kind: HabitKind, id: string) {
     update((st) => {
@@ -388,7 +395,12 @@ export const actions = {
   },
 
   restartCycle(startDate: ISODate) {
-    update((st) => ({ ...st, settings: { ...st.settings, startDate, special: st.settings.special ? { ...st.settings.special, claimedAt: undefined } : null }, chests: {}, redemptions: [] }));
+    update((st) => ({
+      ...archive(st),
+      settings: { ...st.settings, startDate, special: st.settings.special ? { ...st.settings.special, claimedAt: undefined } : null },
+      chests: {},
+      redemptions: [],
+    }));
   },
 
   setNumber(key: 'weeklyGoal' | 'dayGoal' | 'coreWeight' | 'fundPerWeek', value: number) {
@@ -397,6 +409,10 @@ export const actions = {
 
   setExam(exam: ExamPeriod | null) {
     updateSettings((s) => ({ ...s, exam }));
+  },
+
+  setTrip(trip: TripMode | null) {
+    updateSettings((s) => ({ ...s, trip }));
   },
 
   setTheme(theme: Settings['theme']) {

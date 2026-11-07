@@ -20,7 +20,10 @@ import {
   habitLabel,
   isDone,
   isEditable,
+  countedHabits,
+  goalOn,
   isExamDay,
+  isTripDay,
   isWon,
   lastPlayableDay,
   neededToWin,
@@ -54,7 +57,11 @@ export function TodayScreen({ state, today, hasBio, selected, onSelect, onGoRewa
   const editable = isEditable(s, selected, today);
   const playable = lastPlayableDay(s, today);
   const streak = wonStreak(s, state.days, today);
-  const exam = isExamDay(s, selected);
+  const trip = isTripDay(s, selected);
+  const exam = !trip && isExamDay(s, selected);
+  const goal = goalOn(s, selected);
+  const counted = countedHabits(s, selected);
+  const countsHabit = (id: string) => !trip || counted.core.some((h) => h.id === id) || counted.extras.some((h) => h.id === id);
   const pct = Math.round(dayPct(s, state.days, selected));
   const won = isWon(s, state.days, selected);
   const need = neededToWin(s, state.days, selected);
@@ -95,6 +102,8 @@ export function TodayScreen({ state, today, hasBio, selected, onSelect, onGoRewa
   const dayLabel = selected === today ? 'Hoy' : selected === addDays(today, -1) ? 'Ayer' : `Hace ${diffDays(selected, today)} días`;
   const coreDone = s.core.filter((h) => isDone(state.days, selected, 'core', h.id)).length;
   const extrasDone = s.extras.filter((h) => isDone(state.days, selected, 'extra', h.id)).length;
+  const countedDone =
+    counted.core.filter((h) => isDone(state.days, selected, 'core', h.id)).length + counted.extras.filter((h) => isDone(state.days, selected, 'extra', h.id)).length;
 
   return (
     <>
@@ -172,10 +181,12 @@ export function TodayScreen({ state, today, hasBio, selected, onSelect, onGoRewa
                 <span>%</span>
               </div>
               <div className="score-text">
-                <b>{won ? (usedWildcard && pct < s.dayGoal ? 'Día salvado con comodín' : '¡Día ganado!') : `Meta: ${s.dayGoal}%`}</b>
+                <b>{won ? (usedWildcard && pct < goal ? 'Día salvado con comodín' : '¡Día ganado!') : `Meta: ${goal}%`}</b>
                 <span>
                   {won
-                    ? `Núcleo ${coreDone}/${s.core.length}${exam ? ' · modo examen' : ` · secundarios ${extrasDone}/${s.extras.length}`}`
+                    ? trip
+                      ? `Modo viaje · ${countedDone}/${counted.core.length + counted.extras.length} de los que cuentan`
+                      : `Núcleo ${coreDone}/${s.core.length}${exam ? ' · modo examen' : ` · secundarios ${extrasDone}/${s.extras.length}`}`
                     : need
                       ? `Te falta ${describeNeed(need)}.`
                       : 'Hoy ya no alcanza la meta.'}
@@ -184,9 +195,14 @@ export function TodayScreen({ state, today, hasBio, selected, onSelect, onGoRewa
             </div>
             <div className="score-bar" aria-hidden="true">
               <i style={{ width: `${pct}%` }} />
-              <em style={{ left: `${s.dayGoal}%` }} />
+              <em style={{ left: `${goal}%` }} />
             </div>
             {exam && <p className="score-note">Modo examen hasta el {formatLong(s.exam!.to)}: solo cuenta el núcleo. Ganas con 3 de 4.</p>}
+            {trip && (
+              <p className="score-note">
+                Modo viaje hasta el {formatLong(s.trip!.to)}: cuentan {counted.core.length + counted.extras.length} hábitos y ganas con {goal} %. Los demás ni suman ni restan.
+              </p>
+            )}
             {editable && !won && wild.available > 0 && (
               <button
                 type="button"
@@ -210,11 +226,11 @@ export function TodayScreen({ state, today, hasBio, selected, onSelect, onGoRewa
 
           <WeekCard s={s} state={state} date={selected} today={today} onPickDay={onSelect} />
 
-          <SectionTitle aside={`${coreDone}/${s.core.length} · ${Math.round(w.core)}% c/u`}>Núcleo</SectionTitle>
+          <SectionTitle aside={trip ? `${counted.core.length} cuentan en el viaje` : `${coreDone}/${s.core.length} · ${Math.round(w.core)}% c/u`}>Núcleo</SectionTitle>
           {s.core.map((h) => {
             const on = isDone(state.days, selected, 'core', h.id);
             return (
-              <button key={h.id} type="button" className="habit" aria-pressed={on} disabled={!editable} onClick={() => onToggle('core', h.id)}>
+              <button key={h.id} type="button" className={`habit ${countsHabit(h.id) ? '' : 'off'}`} aria-pressed={on} disabled={!editable} onClick={() => onToggle('core', h.id)}>
                 <span className="check">
                   <Icon name="check" size={24} />
                 </span>
@@ -228,6 +244,7 @@ export function TodayScreen({ state, today, hasBio, selected, onSelect, onGoRewa
                     </span>
                   )}
                   {h.min && <span className="min">{h.min}</span>}
+                  {!countsHabit(h.id) && <span className="min">No cuenta en el viaje</span>}
                 </span>
                 <span className="streak">
                   <b>{currentStreak(state.days, 'core', h.id, s, today)}</b>
@@ -240,18 +257,28 @@ export function TodayScreen({ state, today, hasBio, selected, onSelect, onGoRewa
 
           {s.extras.length > 0 && (
             <>
-              <SectionTitle aside={exam ? 'no cuentan en exámenes' : `${extrasDone}/${s.extras.length} · ${w.extra.toFixed(1).replace('.', ',')}% c/u`}>Secundarios</SectionTitle>
+              <SectionTitle
+                aside={
+                  trip
+                    ? `${counted.extras.length} cuentan en el viaje`
+                    : exam
+                      ? 'no cuentan en exámenes'
+                      : `${extrasDone}/${s.extras.length} · ${w.extra.toFixed(1).replace('.', ',')}% c/u`
+                }
+              >
+                Secundarios
+              </SectionTitle>
               <div className="list">
                 {s.extras.map((h) => {
                   const on = isDone(state.days, selected, 'extra', h.id);
                   const run = currentStreak(state.days, 'extra', h.id, s, today);
                   return (
-                    <button key={h.id} type="button" className="row" aria-pressed={on} disabled={!editable} onClick={() => onToggle('extra', h.id)}>
+                    <button key={h.id} type="button" className={`row ${countsHabit(h.id) ? '' : 'off'}`} aria-pressed={on} disabled={!editable} onClick={() => onToggle('extra', h.id)}>
                       <span className="box">
                         <Icon name="check" size={16} />
                       </span>
                       <span className="label">{habitLabel(h, s.startDate, selected)}</span>
-                      <span className="meta">{run > 0 ? `${run} d` : ''}</span>
+                      <span className="meta">{!countsHabit(h.id) ? 'no cuenta' : run > 0 ? `${run} d` : ''}</span>
                     </button>
                   );
                 })}

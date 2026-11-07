@@ -4,6 +4,7 @@
  * - Porcentaje del día: el núcleo vale `coreWeight` (60%) repartido entre sus hábitos y los secundarios
  *   el resto (40%). Se gana el día con `dayGoal` (65%) o más.
  * - Modo examen: esos días solo cuenta el núcleo (cada hábito vale lo mismo).
+ * - Modo viaje: esos días solo cuentan los hábitos elegidos (los demás ni suman ni restan) y puede tener otra meta.
  * - Un día salvado con comodín cuenta como ganado.
  * - Semanas de 7 días desde el inicio; se gana la semana con `weeklyGoal` días ganados (6 de 7).
  *   El último tramo es más corto y su meta baja en lo que le falta para 7.
@@ -13,7 +14,7 @@ import type { DayLog, Habit, HabitKind, Settings } from './types';
 
 export type Days = Record<ISODate, DayLog>;
 type Cycle = Pick<Settings, 'startDate' | 'cycleLength'>;
-type Scoring = Pick<Settings, 'core' | 'extras' | 'coreWeight' | 'dayGoal' | 'exam'>;
+type Scoring = Pick<Settings, 'core' | 'extras' | 'coreWeight' | 'dayGoal' | 'exam' | 'trip'>;
 
 const EPS = 1e-9;
 
@@ -100,22 +101,41 @@ export function isExamDay(s: Pick<Settings, 'exam'>, date: ISODate): boolean {
   return Boolean(s.exam && date >= s.exam.from && date <= s.exam.to);
 }
 
-/** Cuánto vale cada hábito ese día (en puntos de porcentaje). */
+export function isTripDay(s: Pick<Settings, 'trip'>, date: ISODate): boolean {
+  return Boolean(s.trip && date >= s.trip.from && date <= s.trip.to);
+}
+
+/** Hábitos que cuentan ese día: en viaje, los elegidos; en exámenes, solo el núcleo; si no, todos. */
+export function countedHabits(s: Scoring, date: ISODate): { core: Habit[]; extras: Habit[] } {
+  if (isTripDay(s, date)) {
+    const ids = new Set(s.trip!.habits);
+    return { core: s.core.filter((h) => ids.has(h.id)), extras: s.extras.filter((h) => ids.has(h.id)) };
+  }
+  if (isExamDay(s, date)) return { core: s.core, extras: [] };
+  return { core: s.core, extras: s.extras };
+}
+
+/** Meta del día (en viaje puede ser otra). */
+export function goalOn(s: Scoring, date: ISODate): number {
+  return isTripDay(s, date) && s.trip?.dayGoal ? s.trip.dayGoal : s.dayGoal;
+}
+
+/** Cuánto vale cada hábito que cuenta ese día (en puntos de porcentaje). */
 export function weights(s: Scoring, date: ISODate): { core: number; extra: number } {
-  const coreN = s.core.length;
-  const extraN = s.extras.length;
-  if (coreN === 0) return { core: 0, extra: extraN ? 100 / extraN : 0 };
-  if (isExamDay(s, date) || extraN === 0) return { core: 100 / coreN, extra: 0 };
-  return { core: s.coreWeight / coreN, extra: (100 - s.coreWeight) / extraN };
+  const { core, extras } = countedHabits(s, date);
+  if (core.length === 0) return { core: 0, extra: extras.length ? 100 / extras.length : 0 };
+  if (extras.length === 0) return { core: 100 / core.length, extra: 0 };
+  return { core: s.coreWeight / core.length, extra: (100 - s.coreWeight) / extras.length };
 }
 
 export function dayPct(s: Scoring, days: Days, date: ISODate): number {
   const w = weights(s, date);
-  return Math.min(100, coreCount(days, date, s.core) * w.core + extraCount(days, date, s.extras) * w.extra);
+  const { core, extras } = countedHabits(s, date);
+  return Math.min(100, coreCount(days, date, core) * w.core + extraCount(days, date, extras) * w.extra);
 }
 
 export function isWon(s: Scoring, days: Days, date: ISODate): boolean {
-  return Boolean(days[date]?.wildcard) || dayPct(s, days, date) >= s.dayGoal - EPS;
+  return Boolean(days[date]?.wildcard) || dayPct(s, days, date) >= goalOn(s, date) - EPS;
 }
 
 /**
@@ -126,12 +146,14 @@ export function neededToWin(s: Scoring, days: Days, date: ISODate): { core: numb
   if (isWon(s, days, date)) return { core: 0, extra: 0 };
   const w = weights(s, date);
   const pct = dayPct(s, days, date);
-  const coreLeft = s.core.length - coreCount(days, date, s.core);
-  const extraLeft = w.extra > 0 ? s.extras.length - extraCount(days, date, s.extras) : 0;
+  const goal = goalOn(s, date);
+  const { core, extras } = countedHabits(s, date);
+  const coreLeft = core.length - coreCount(days, date, core);
+  const extraLeft = w.extra > 0 ? extras.length - extraCount(days, date, extras) : 0;
   let best: { core: number; extra: number } | null = null;
   for (let c = 0; c <= coreLeft; c++) {
     for (let e = 0; e <= extraLeft; e++) {
-      if (pct + c * w.core + e * w.extra < s.dayGoal - EPS) continue;
+      if (pct + c * w.core + e * w.extra < goal - EPS) continue;
       if (!best || c + e < best.core + best.extra || (c + e === best.core + best.extra && c > best.core)) best = { core: c, extra: e };
       break;
     }

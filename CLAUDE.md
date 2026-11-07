@@ -9,12 +9,14 @@ Es la "App 1". Existe otra app separada y privada (Bitácora); no mezcles códig
 - **Núcleo de 4:** dormir, rutina de la mañana (con sus pasos), gym y bloque profundo. La versión mínima cuenta como cumplida.
 - **Porcentaje del día:** `coreWeight` (60 %) repartido en el núcleo y el resto en los secundarios. Se gana el día con `dayGoal` (65 %) o más. Un comodín gana el día.
 - **Modo examen** (`exam`): esos días solo cuenta el núcleo (cada hábito vale igual).
+- **Modo viaje** (`trip`, opcional): esas fechas solo cuentan los hábitos elegidos, con su propia meta (`trip.dayGoal`); los demás ni suman ni restan. Las fechas se escriben en la app.
 - **Semanas** desde el inicio del ciclo, de 7 días; se gana con `weeklyGoal` (6) días ganados. El tramo final es más corto y su meta baja.
 - **Fondo:** `fundPerWeek` (Bs 100) por semana ganada + bonos de cofres − canjes. Un comodín cada 2 semanas ganadas.
 - Hábitos con `levels` cambian solos por semana (Meditar 10 → 15 min).
 - **Semana victoriosa** (`src/lib/team.ts`): el promedio de la semana de Val Q y de Bitácora llega a 80 %. El **gran premio compartido** (`settings.grand`) pide N semanas victoriosas (9 de 13) y se reclama en Bitácora; en Hoy aparece después del premio especial.
 - **Insignias** (`src/lib/badges.ts`): cada bloque de 2 semanas con `weeklyGoal × 2` días ganados sube un nivel (Bronce, Plata, Oro, Platino, Diamante, Leyenda). Un bloque perdido no quita nada.
 - **Ánimo del día** (`DayLog.mood`, 1 a 5): un toque en Hoy; en Avance se ve tu porcentaje según tu ánimo.
+- **Historial** (`history`, `src/lib/history.ts`): al empezar un ciclo nuevo se guarda un resumen del que termina; se ve en Avance → Ciclos anteriores.
 - Marcar un día completo debe tomar menos de 30 segundos; los botones miden 48 px o más.
 
 ## Privacidad y datos

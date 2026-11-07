@@ -16,6 +16,8 @@ Funciona sin internet, se instala con su propio ícono y guarda todo **cifrado**
 - **Núcleo (4):** dormir, rutina de la mañana, gym y bloque profundo de estudio. Cada uno tiene una **versión mínima** para los días malos, que también cuenta.
 - **Porcentaje del día:** el núcleo vale 60 % y los secundarios 40 %. **Ganas el día con 65 % o más.** Sin el núcleo no se puede ganar.
 - **Modo examen:** en esas fechas solo cuenta el núcleo y ganas el día con 3 de 4.
+- **Modo viaje:** eliges fechas y qué hábitos cuentan esos días (y su meta); los demás ni suman ni restan.
+- **Historial de ciclos:** al empezar un ciclo nuevo, el resumen del anterior queda en Avance.
 - **Semanas:** 12 semanas de 7 días y un tramo final. Ganas la semana con **6 de 7 días ganados**.
 - **Fondo de premios:** cada semana ganada suma **Bs 100**. Con el fondo canjeas los premios de tu lista (cada uno con su precio).
 - **Cofre sorpresa** por cada semana ganada (+20 o +50 Bs, un comodín o una noche de peli) y **comodín** cada 2 semanas ganadas, para salvar un día malo.

@@ -2,7 +2,7 @@
 import { CYCLE_LENGTH, DEFAULT_CORE_WEIGHT, DEFAULT_DAY_GOAL, DEFAULT_FUND_PER_WEEK } from './config';
 import { isValidISODate } from './dates';
 import { isAccent, isTextSize, isTheme } from './look';
-import type { AppState, CatalogItem, Chest, ChestOutcome, DayLog, Habit, Mood, Redemption, Settings, SharedGrand, SpecialPrize, Theme } from './types';
+import type { AppState, CatalogItem, Chest, ChestOutcome, CycleSummary, DayLog, Habit, Mood, Redemption, Settings, SharedGrand, SpecialPrize, Theme, TripMode } from './types';
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const str = (v: unknown, max: number): string | null => (typeof v === 'string' ? v.trim().slice(0, max) : null);
@@ -66,6 +66,15 @@ function special(v: unknown): SpecialPrize | null {
   return sp;
 }
 
+function trip(v: unknown): TripMode | null {
+  if (!isObj(v) || !isValidISODate(v.from) || !isValidISODate(v.to) || v.from > v.to) return null;
+  const habits = Array.isArray(v.habits) ? [...new Set(v.habits.map((x) => str(x, 40)).filter((x): x is string => Boolean(x)))].slice(0, 30) : [];
+  if (!habits.length) return null;
+  const t: TripMode = { from: v.from, to: v.to, habits };
+  if (typeof v.dayGoal === 'number') t.dayGoal = Math.round(num(v.dayGoal, 1, 100, DEFAULT_DAY_GOAL));
+  return t;
+}
+
 function grand(v: unknown): SharedGrand | null {
   if (!isObj(v)) return null;
   const name = str(v.name, 60);
@@ -92,6 +101,7 @@ function settings(v: unknown): Settings | null {
     fundPerWeek: Math.round(num(v.fundPerWeek, 0, 10000, DEFAULT_FUND_PER_WEEK)),
     catalog: catalog(v.catalog),
     special: special(v.special),
+    trip: trip(v.trip),
     grand: grand(v.grand),
     theme,
     autoLockMinutes: Math.round(num(v.autoLockMinutes, 0, 60, 1)),
@@ -112,6 +122,29 @@ function flags(v: unknown): Record<string, boolean> {
 }
 
 const OUTCOMES: ChestOutcome[] = ['bs20', 'bs50', 'wildcard', 'movie'];
+
+function history(v: unknown): CycleSummary[] {
+  if (!Array.isArray(v)) return [];
+  const out: CycleSummary[] = [];
+  for (const c of v) {
+    if (!isObj(c) || !isValidISODate(c.start) || !isValidISODate(c.end)) continue;
+    const n = (x: unknown, max: number) => Math.round(num(x, 0, max, 0));
+    out.push({
+      start: c.start,
+      end: c.end,
+      days: n(c.days, 400),
+      daysWon: n(c.daysWon, 400),
+      avgPct: n(c.avgPct, 100),
+      weeksWon: n(c.weeksWon, 60),
+      weeksTotal: n(c.weeksTotal, 60),
+      badges: n(c.badges, 20),
+      fundEarned: n(c.fundEarned, 1_000_000),
+      redeemed: n(c.redeemed, 1000),
+      archivedAt: str(c.archivedAt, 40) ?? '',
+    });
+  }
+  return out.slice(-50);
+}
 
 export function sanitizeState(raw: unknown): AppState | null {
   if (!isObj(raw) || raw.schema !== 2) return null;
@@ -147,5 +180,7 @@ export function sanitizeState(raw: unknown): AppState | null {
       state.redemptions.push(red);
     }
   }
+  const past = history(raw.history);
+  if (past.length) state.history = past;
   return state;
 }
