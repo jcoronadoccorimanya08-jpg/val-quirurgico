@@ -29,6 +29,7 @@ import {
   verifyPattern,
 } from '../lib/store';
 import type { AppState, Habit } from '../lib/types';
+import { useBridgeStatus, type BridgeStatus } from '../lib/widget';
 import type { VaultRecord } from '../lib/vault';
 
 type Pending = { kind: 'start'; date: ISODate } | { kind: 'restart'; date: ISODate } | { kind: 'restore'; state: AppState } | null;
@@ -421,6 +422,11 @@ export function SettingsScreen({ state, today, hasBio }: { state: AppState; toda
         </div>
       </div>
 
+      <SectionTitle>Widget y recordatorio</SectionTitle>
+      <div className="group">
+        <WidgetItem />
+      </div>
+
       <SectionTitle>Reporte para Claude</SectionTitle>
       <ReportCard state={state} today={today} report={report} />
 
@@ -679,6 +685,22 @@ function BackupPattern({ record, onClose, onOpened }: { record: Pick<VaultRecord
       </main>
     </div>
   );
+}
+
+const WIDGET_TEXT: Record<BridgeStatus, { title: string; note: string }> = {
+  off: {
+    title: 'Abre Val Q desde la app Rachas',
+    note: 'Así tu widget muestra tu racha, cambia de día solo y a las 22:30 te recuerda anotar tu lista.',
+  },
+  connecting: { title: 'Conectando con el widget…', note: 'Toma un momento. Si no cambia, cierra y abre Val Q desde el ícono de Rachas.' },
+  ready: { title: 'Conectando con el widget…', note: 'Toma un momento. Si no cambia, cierra y abre Val Q desde el ícono de Rachas.' },
+  saved: { title: 'Widget conectado ✓', note: 'Se actualiza cada vez que marcas algo. A las 22:30 te recuerda anotar tu lista.' },
+};
+
+/** Si Val Q se abrió desde la app Rachas y el widget ya recibió tu resumen. */
+function WidgetItem() {
+  const text = WIDGET_TEXT[useBridgeStatus()];
+  return <Item title={text.title} note={text.note} />;
 }
 
 function Item({ title, note, children }: { title: string; note?: string; children?: ReactNode }) {

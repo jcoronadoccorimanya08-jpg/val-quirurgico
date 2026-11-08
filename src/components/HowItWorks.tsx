@@ -8,9 +8,9 @@ import { Icon } from './Icon';
 export const WHATS_NEW = {
   version: __APP_VERSION__,
   items: [
-    `Semana victoriosa con ${OTHER_NAME} y gran premio compartido.`,
-    'Insignias cada 2 semanas y ánimo del día.',
-    'Modo viaje e historial de ciclos (Ajustes → Ciclo).',
+    'Widget de Rachas: ahora sí recibe tu racha y cambia de día solo a medianoche.',
+    'A las 22:30, un recordatorio para anotar tu lista (con Rachas 3.0).',
+    'Ajustes → Widget y recordatorio: ves si tu widget está conectado.',
   ],
 };
 
