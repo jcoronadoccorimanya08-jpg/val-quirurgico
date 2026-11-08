@@ -46,9 +46,18 @@ interface Snapshot {
   state: AppState | null;
   /** La huella está activada en este teléfono. */
   hasBio: boolean;
+  /** Modo prueba: una copia en memoria con fecha simulada. Nunca se guarda. */
+  test: { date: ISODate } | null;
 }
 
-let snap: Snapshot = { phase: 'loading', state: null, hasBio: false };
+let snap: Snapshot = { phase: 'loading', state: null, hasBio: false, test: null };
+/** Tus datos reales mientras estás en modo prueba (lo que se ve es una copia). */
+let real: AppState | null = null;
+
+/** El estado que se guarda: el real, aunque estés en modo prueba. */
+function realState(): AppState | null {
+  return snap.test ? real : snap.state;
+}
 let dkRaw: Uint8Array<ArrayBuffer> | null = null;
 let dataKey: CryptoKey | null = null;
 let lockRec: LockRecord | null = null;
@@ -87,7 +96,7 @@ export function onSaveError(cb: (m: string) => void): () => void {
 
 function persist(): Promise<void> {
   writing = writing.then(async () => {
-    const st = snap.state;
+    const st = realState();
     if (!dataKey || !st || !lockRec) return;
     try {
       const record: VaultRecord = { v: 2, savedAt: Date.now(), lock: lockRec, data: await encryptJSON(dataKey, st) };
@@ -105,7 +114,28 @@ export function flush(): Promise<void> {
 
 function commit(next: AppState) {
   set({ state: next });
-  void persist();
+  if (!snap.test) void persist();
+}
+
+// ---------- Modo prueba ----------
+
+/** Entra al modo prueba con una copia de tus datos y la fecha dada. Lo que marques no se guarda. */
+export function enterTest(date: ISODate) {
+  if (snap.phase !== 'unlocked' || !snap.state || snap.test) return;
+  real = snap.state;
+  set({ state: structuredClone(real), test: { date } });
+}
+
+export function setTestDate(date: ISODate) {
+  if (snap.test) set({ test: { date } });
+}
+
+/** Sale del modo prueba: vuelven tus datos reales, intactos. */
+export function exitTest() {
+  if (!snap.test) return;
+  const back = real;
+  real = null;
+  set({ state: back, test: null });
 }
 
 // ---------- Bóveda ----------
@@ -222,7 +252,8 @@ export function lock() {
   if (snap.phase !== 'unlocked') return;
   dkRaw = null;
   dataKey = null;
-  set({ phase: 'locked', state: null });
+  real = null;
+  set({ phase: 'locked', state: null, test: null });
 }
 
 /** Solo para «¿Olvidaste tu patrón?». */
@@ -232,16 +263,18 @@ export async function wipeAll(): Promise<void> {
   dataKey = null;
   lockRec = null;
   await deleteVault();
-  set({ phase: 'setup', state: null, hasBio: false });
+  real = null;
+  set({ phase: 'setup', state: null, hasBio: false, test: null });
 }
 
 // ---------- Respaldo ----------
 
 /** Copia cifrada de tus datos, que se abre con tu patrón actual (sin la huella, que es de este teléfono). */
 export async function currentBackup(): Promise<Omit<VaultRecord, 'savedAt'> | null> {
-  if (!dataKey || !lockRec || !snap.state) return null;
+  const st = realState();
+  if (!dataKey || !lockRec || !st) return null;
   await writing;
-  return { v: 2, lock: { pattern: lockRec.pattern }, data: await encryptJSON(dataKey, snap.state) };
+  return { v: 2, lock: { pattern: lockRec.pattern }, data: await encryptJSON(dataKey, st) };
 }
 
 /** Abre un respaldo con su patrón. null si el patrón no es el correcto. */
