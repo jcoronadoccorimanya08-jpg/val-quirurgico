@@ -26,7 +26,8 @@ describe('resumen para el widget', () => {
     expect(p.goal).toBe(st.settings.dayGoal);
     const later = buildWidgetPayload(st, '2026-12-01');
     expect(later.days).toHaveLength(14);
-    expect(JSON.stringify(p)).not.toContain('Gym');
+    // El widget de Val Q sí muestra el núcleo (nombres cortos); los secundarios no van.
+    expect(JSON.stringify(p)).not.toContain('Anki');
   });
 
   it('muestra la meta: el premio especial antes de su fecha y después el gran premio', () => {
@@ -35,5 +36,21 @@ describe('resumen para el widget', () => {
     st.settings.grand = { name: 'Gran premio', weeks: 9 };
     expect(buildWidgetPayload(st, '2026-11-20').prize).toEqual({ name: 'Premio de prueba', daysLeft: 11 });
     expect(buildWidgetPayload(st, '2026-12-02').prize).toEqual({ name: 'Gran premio', daysLeft: 66 });
+  });
+});
+
+describe('widget v2', () => {
+  it('núcleo de hoy con nombre corto, frase y color', async () => {
+    const { shortName, streakPhrase } = await import('../src/lib/widget');
+    const st = initialState(START, null);
+    st.days['2026-11-12'] = { core: { [DEFAULT_CORE[2]!.id]: true }, extra: {} };
+    const p = buildWidgetPayload(st, '2026-11-12');
+    expect(p.core.map((c) => c.n)).toEqual(DEFAULT_CORE.map((h) => shortName(h.name)));
+    expect(p.core[2]).toMatchObject({ done: true, counts: true });
+    expect(p.accent).toBe('verde');
+    expect(shortName('Dormir 23:00 – 6:00')).toBe('Dormir');
+    expect(streakPhrase({ started: true, streak: 0, todayWon: false, yesterdayWon: false, dayNumber: 4 })).toBe('Hoy no se negocia');
+    expect(streakPhrase({ started: true, streak: 8, todayWon: true, yesterdayWon: true, dayNumber: 9 })).toBe('¡Gran racha! Día ganado');
+    expect(streakPhrase({ started: false, streak: 0, todayWon: false, yesterdayWon: false, dayNumber: 0 })).toBe('Tu ciclo está por empezar');
   });
 });

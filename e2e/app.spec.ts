@@ -247,6 +247,23 @@ test('historial: al empezar un ciclo nuevo queda el resumen del anterior', async
   await expect(page.getByLabel('Ciclos anteriores')).toContainText('días ganados');
 });
 
+test('modo prueba: mueve la fecha y no toca tus datos reales', async ({ page }) => {
+  await onboard(page, { exam: false });
+  await page.locator('nav.nav').getByRole('button', { name: 'Ajustes' }).click();
+  await page.getByRole('button', { name: 'Probar', exact: true }).click();
+  const bar = page.getByRole('region', { name: 'Modo prueba' });
+  await expect(bar).toContainText('sábado 7 de noviembre');
+  await bar.getByRole('button', { name: 'Día siguiente en la prueba' }).click();
+  await expect(bar).toContainText('domingo 8 de noviembre');
+  await page.locator('nav.nav').getByRole('button', { name: 'Hoy' }).click();
+  await expect(page.getByRole('heading', { name: 'Día 2 de 90' })).toBeVisible();
+  await page.getByRole('button', { name: /^Gym/ }).click();
+  await expect(page.getByRole('button', { name: /^Gym/ })).toHaveAttribute('aria-pressed', 'true');
+  await bar.getByRole('button', { name: 'Salir' }).click();
+  await expect(page.getByRole('heading', { name: 'Día 1 de 90' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Gym/ })).toHaveAttribute('aria-pressed', 'false');
+});
+
 test('la bienvenida funciona sin internet y explica cómo instalar', async ({ page }) => {
   await page.goto('./');
   await expect(page.getByRole('region', { name: 'Instalar la app' })).toContainText('«Instalar aplicación»');
