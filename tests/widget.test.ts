@@ -102,6 +102,9 @@ describe('widget v3: cambia de día solo y avisa si estás en modo prueba', () =
     const self = 'https://jcoronadoccorimanya08-jpg.github.io';
     expect(isRachasOrigin('android-app://jcoronadoccorimanya08-jpg.github.io/io.github.jcoronadoccorimanya08.rachas', self)).toBe(true);
     expect(isRachasOrigin('android-app://io.github.jcoronadoccorimanya08.rachas', self)).toBe(true);
+    // Chrome actual: el origen solo guarda el sitio.
+    expect(isRachasOrigin('android-app://jcoronadoccorimanya08-jpg.github.io', self)).toBe(true);
+    expect(isRachasOrigin('android-app://otro-sitio.example', self)).toBe(false);
     expect(isRachasOrigin(self, self)).toBe(true);
     expect(isRachasOrigin('android-app://io.github.jcoronadoccorimanya08.rachas.otra', self)).toBe(false);
     expect(isRachasOrigin('android-app://otra.app/io.github.otro', self)).toBe(false);
@@ -121,5 +124,21 @@ describe('aviso de widget sin actualizar', () => {
     expect(widgetHint({ ...base, waited: false })).toBeNull();
     expect(widgetHint({ ...base, standalone: false })).toBeNull();
     expect(widgetHint({ ...base, android: false })).toBeNull();
+  });
+});
+
+describe('canal de Rachas', () => {
+  it('solo el primer mensaje de Chrome: sin ventana de origen y con un puerto', async () => {
+    const { isRachasChannel } = await import('../src/lib/widget');
+    const self = 'https://jcoronadoccorimanya08-jpg.github.io';
+    const port = {};
+    const ok = { origin: 'android-app://jcoronadoccorimanya08-jpg.github.io', source: null, ports: [port] };
+    expect(isRachasChannel(ok, self)).toBe(true);
+    // Desde otra ventana (por ejemplo, una página que abrió esta), nunca.
+    expect(isRachasChannel({ ...ok, source: {} }, self)).toBe(false);
+    expect(isRachasChannel({ ...ok, ports: [] }, self)).toBe(false);
+    expect(isRachasChannel({ ...ok, ports: [port, port] }, self)).toBe(false);
+    expect(isRachasChannel({ ...ok, origin: 'android-app://otro-sitio.example' }, self)).toBe(false);
+    expect(isRachasChannel({ ...ok, origin: 'null' }, self)).toBe(false);
   });
 });
