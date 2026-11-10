@@ -1,7 +1,7 @@
 {
   "name": "val-quirurgico",
   "private": true,
-  "version": "3.4.2",
+  "version": "3.5.0",
   "description": "Val quirúrgico: ciclo de 90 días con porcentaje diario, modo examen, fondo de premios, patrón y huella. PWA offline para Android.",
   "type": "module",
   "scripts": {

@@ -20,6 +20,7 @@ function habits(v: unknown, withMin: boolean): Habit[] {
     if (!id || !name || seen.has(id)) continue;
     seen.add(id);
     const h: Habit = { id, name };
+    if (isValidISODate(item.since)) h.since = item.since;
     const min = str(item.min, 140);
     if (withMin && min) h.min = min;
     if (Array.isArray(item.steps)) {
@@ -111,6 +112,10 @@ function settings(v: unknown): Settings | null {
   if (lb) s.lastBackupAt = lb;
   if (isAccent(v.accent) && v.accent !== 'verde') s.accent = v.accent;
   if (isTextSize(v.textSize) && v.textSize !== 'normal') s.textSize = v.textSize;
+  if (Array.isArray(v.applied)) {
+    const applied = v.applied.map((x) => str(x, 40)).filter((x): x is string => Boolean(x)).slice(0, 20);
+    if (applied.length) s.applied = applied;
+  }
   return s;
 }
 

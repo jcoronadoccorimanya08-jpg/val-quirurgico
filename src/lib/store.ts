@@ -34,6 +34,7 @@ import {
 } from './crypto';
 import { todayISO, type ISODate } from './dates';
 import { summarizeCycle } from './history';
+import { applyMigrations } from './migrations';
 import { chestFromRoll } from './rewards';
 import { sanitizeState } from './sanitize';
 import type { Accent, AppState, CatalogItem, DayLog, ExamPeriod, Habit, HabitKind, Mood, Settings, SharedGrand, SpecialPrize, TextSize, TripMode } from './types';
@@ -153,13 +154,24 @@ async function patternLock(pattern: string, raw: Uint8Array<ArrayBuffer>) {
   return { iter: KDF_ITERATIONS, salt: toB64(salt), wrapped: await encryptBytes(kek, raw) };
 }
 
+/** Si al abrir se aplicó un cambio de una sola vez (ver migrations.ts), hay que guardarlo. */
+let migrated = false;
+
 async function openWith(raw: Uint8Array<ArrayBuffer>, record: VaultRecord): Promise<AppState | null> {
   const key = await importDataKey(raw);
-  const state = sanitizeState(await decryptJSON(key, record.data));
-  if (!state) return null;
+  const loaded = sanitizeState(await decryptJSON(key, record.data));
+  if (!loaded) return null;
+  const state = applyMigrations(loaded, todayISO());
+  migrated = state !== loaded;
   dkRaw = raw;
   dataKey = key;
   return state;
+}
+
+function saveIfMigrated() {
+  if (!migrated) return;
+  migrated = false;
+  void persist();
 }
 
 export async function createVault(pattern: string, state: AppState): Promise<void> {
@@ -194,6 +206,7 @@ export async function unlockWithPattern(pattern: string): Promise<boolean> {
   if (!state) return false;
   lockRec = v.lock;
   set({ phase: 'unlocked', state, hasBio: Boolean(v.lock.bio) });
+  saveIfMigrated();
   return true;
 }
 
@@ -209,6 +222,7 @@ export async function unlockWithBiometric(): Promise<'ok' | 'fail' | 'unavailabl
     if (!state) return 'fail';
     lockRec = v.lock;
     set({ phase: 'unlocked', state, hasBio: true });
+    saveIfMigrated();
     return 'ok';
   } catch {
     return 'fail';

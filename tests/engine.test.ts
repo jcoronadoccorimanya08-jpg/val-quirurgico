@@ -29,7 +29,7 @@ function settings(over: Partial<Settings> = {}): Settings {
   return { ...initialState(START, null).settings, ...over };
 }
 
-const CORE = DEFAULT_CORE.map((h) => h.id); // 4
+const CORE = DEFAULT_CORE.map((h) => h.id); // 5 (con la lectura de 30 min)
 const EXTRAS = DEFAULT_EXTRAS.map((h) => h.id); // 7
 
 function mark(days: Days, dates: string[], core: string[], extra: string[] = []): Days {
@@ -42,9 +42,10 @@ function mark(days: Days, dates: string[], core: string[], extra: string[] = [])
 }
 
 describe('hábitos por defecto', () => {
-  it('núcleo de 4 (con la rutina de la mañana) y 7 secundarios', () => {
+  it('núcleo de 5 (con la rutina de la mañana y la lectura de 30 min) y 7 secundarios', () => {
     const s = settings();
-    expect(s.core.map((h) => h.id)).toEqual(['sueno', 'rutina', 'gym', 'estudio']);
+    expect(s.core.map((h) => h.id)).toEqual(['sueno', 'rutina', 'gym', 'estudio', 'lectura30']);
+    expect(s.core[4]).toMatchObject({ name: 'Lectura 30 min', min: 'Día malo: 15 minutos.' });
     expect(s.core[1]?.steps?.length).toBe(4);
     expect(s.extras).toHaveLength(7);
     expect(s.extras.map((h) => h.id)).toContain('lectura');
@@ -78,20 +79,26 @@ describe('porcentaje del día (núcleo 60% / secundarios 40%, gana con 65%)', ()
     expect(neededToWin(s, days, d)).toEqual({ core: 0, extra: 1 });
   });
 
-  it('3 del núcleo necesitan 4 secundarios', () => {
-    expect(isWon(s, mark({}, [d], CORE.slice(0, 3), EXTRAS.slice(0, 3)), d)).toBe(false);
-    expect(isWon(s, mark({}, [d], CORE.slice(0, 3), EXTRAS.slice(0, 4)), d)).toBe(true);
+  it('cada hábito del núcleo vale 12 % (60 % entre 5)', () => {
+    expect(dayPct(s, mark({}, [d], CORE.slice(0, 1)), d)).toBeCloseTo(12, 5);
   });
 
-  it('2 del núcleo necesitan los 7 secundarios; 1 del núcleo no puede ganar', () => {
-    expect(isWon(s, mark({}, [d], CORE.slice(0, 2), EXTRAS), d)).toBe(true);
-    expect(isWon(s, mark({}, [d], CORE.slice(0, 2), EXTRAS.slice(0, 6)), d)).toBe(false);
-    expect(isWon(s, mark({}, [d], CORE.slice(0, 1), EXTRAS), d)).toBe(false);
+  it('4 del núcleo necesitan 3 secundarios; 3 del núcleo necesitan 6', () => {
+    expect(isWon(s, mark({}, [d], CORE.slice(0, 4), EXTRAS.slice(0, 2)), d)).toBe(false);
+    expect(isWon(s, mark({}, [d], CORE.slice(0, 4), EXTRAS.slice(0, 3)), d)).toBe(true);
+    expect(isWon(s, mark({}, [d], CORE.slice(0, 3), EXTRAS.slice(0, 5)), d)).toBe(false);
+    expect(isWon(s, mark({}, [d], CORE.slice(0, 3), EXTRAS.slice(0, 6)), d)).toBe(true);
+  });
+
+  it('2 del núcleo no ganan ni con los 7 secundarios', () => {
+    expect(isWon(s, mark({}, [d], CORE.slice(0, 2), EXTRAS), d)).toBe(false);
+    expect(isWon(s, mark({}, [d], CORE.slice(0, 3), EXTRAS), d)).toBe(true);
   });
 
   it('sugiere lo mínimo que falta, prefiriendo el núcleo', () => {
-    expect(neededToWin(s, {}, d)).toEqual({ core: 4, extra: 1 });
-    expect(neededToWin(s, mark({}, [d], CORE.slice(0, 3)), d)).toEqual({ core: 1, extra: 1 });
+    expect(neededToWin(s, {}, d)).toEqual({ core: 5, extra: 1 });
+    expect(neededToWin(s, mark({}, [d], CORE.slice(0, 4)), d)).toEqual({ core: 1, extra: 1 });
+    expect(neededToWin(s, mark({}, [d], CORE.slice(0, 3)), d)).toEqual({ core: 2, extra: 1 });
   });
 
   it('un comodín gana el día', () => {
@@ -104,15 +111,15 @@ describe('modo examen', () => {
   const s = settings({ exam: { from: START, to: '2026-12-20' } });
   const d = '2026-11-10';
 
-  it('solo cuenta el núcleo: 3 de 4 gana', () => {
-    const days = mark({}, [d], CORE.slice(0, 3));
-    expect(dayPct(s, days, d)).toBe(75);
+  it('solo cuenta el núcleo: 4 de 5 gana', () => {
+    const days = mark({}, [d], CORE.slice(0, 4));
+    expect(dayPct(s, days, d)).toBe(80);
     expect(isWon(s, days, d)).toBe(true);
   });
 
-  it('2 de 4 no gana aunque hagas todos los secundarios', () => {
-    const days = mark({}, [d], CORE.slice(0, 2), EXTRAS);
-    expect(dayPct(s, days, d)).toBe(50);
+  it('3 de 5 no gana aunque hagas todos los secundarios', () => {
+    const days = mark({}, [d], CORE.slice(0, 3), EXTRAS);
+    expect(dayPct(s, days, d)).toBe(60);
     expect(isWon(s, days, d)).toBe(false);
   });
 
@@ -171,8 +178,8 @@ describe('estadísticas', () => {
     const series = dailySeries(s, days, '2026-11-09');
     expect(series).toHaveLength(2);
     expect(series[0]!.won).toBe(true);
-    expect(series[1]!.pct).toBeCloseTo(30, 5);
-    expect(series[1]!.avg7).toBeCloseTo((65.714 + 30) / 2, 1);
+    expect(series[1]!.pct).toBeCloseTo(24, 5);
+    expect(series[1]!.avg7).toBeCloseTo((65.714 + 24) / 2, 1);
   });
 
   it('antes y después del ciclo', () => {

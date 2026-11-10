@@ -8,9 +8,9 @@ import { Icon } from './Icon';
 export const WHATS_NEW = {
   version: __APP_VERSION__,
   items: [
-    'Widget de Rachas: ahora sí recibe tu racha y cambia de día solo a medianoche.',
-    'A las 22:30, un recordatorio para anotar tu lista (con Rachas 3.0).',
-    'Ajustes → Widget y recordatorio: ves si tu widget está conectado.',
+    'Lectura 30 min ahora es parte del núcleo (día malo: 15 min) y vale lo mismo que los otros.',
+    'Cuenta desde hoy: tus días anteriores no cambian. En el viaje también cuenta.',
+    'En el widget de Rachas aparece con los otros 4 del núcleo.',
   ],
 };
 

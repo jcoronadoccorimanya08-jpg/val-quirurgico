@@ -15,6 +15,8 @@ export interface Habit {
   /** Pasos que se muestran como guía (por ejemplo, la rutina de la mañana). */
   steps?: string[];
   levels?: HabitLevel[];
+  /** Desde qué día cuenta (se agregó con el ciclo en marcha): los días anteriores no cambian. */
+  since?: ISODate;
 }
 
 export type Theme = 'system' | 'dark' | 'light' | 'black';
@@ -83,6 +85,8 @@ export interface Settings {
   exam: ExamPeriod | null;
   /** Opcional: los estados guardados antes no lo tienen (se lee como null). */
   trip?: TripMode | null;
+  /** Cambios de una sola vez que ya se aplicaron a tus datos (para no repetirlos). */
+  applied?: string[];
   /** Bs que suma al fondo cada semana ganada. */
   fundPerWeek: number;
   catalog: CatalogItem[];

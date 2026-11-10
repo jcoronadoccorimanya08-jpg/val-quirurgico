@@ -18,6 +18,7 @@ import {
   cyclePhase,
   cycleStats,
   dayPct,
+  habitActive,
   habitLabel,
   isDone,
   isEditable,
@@ -37,7 +38,7 @@ import { haptic, toast } from '../lib/feedback';
 import { badgeBlocks, earnedTiers } from '../lib/badges';
 import { wildcards } from '../lib/rewards';
 import { actions, biometricSupport, enableBiometric, getState, lock } from '../lib/store';
-import type { AppState, HabitKind, Settings } from '../lib/types';
+import type { AppState, Habit, HabitKind, Settings } from '../lib/types';
 
 interface Props {
   state: AppState;
@@ -64,7 +65,13 @@ export function TodayScreen({ state, today, hasBio, selected, onSelect, onGoRewa
   const counted = countedHabits(s, selected);
   // En el viaje también aparecen los hábitos «para vacaciones» que elegiste.
   const extrasShown = trip ? [...s.extras, ...s.vacation.filter((h) => s.trip!.habits.includes(h.id))] : s.extras;
-  const countsHabit = (id: string) => !trip || counted.core.some((h) => h.id === id) || counted.extras.some((h) => h.id === id);
+  // Un hábito agregado con el ciclo en marcha no cuenta antes de su fecha («since»).
+  const notYet = (h: Habit) => !habitActive(h, selected);
+  const countsHabit = (id: string) => {
+    const h = [...s.core, ...extrasShown].find((x) => x.id === id);
+    if (h && notYet(h)) return false;
+    return !trip || counted.core.some((x) => x.id === id) || counted.extras.some((x) => x.id === id);
+  };
   const pct = Math.round(dayPct(s, state.days, selected));
   const won = isWon(s, state.days, selected);
   const need = neededToWin(s, state.days, selected);
@@ -248,7 +255,7 @@ export function TodayScreen({ state, today, hasBio, selected, onSelect, onGoRewa
                     </span>
                   )}
                   {h.min && <span className="min">{h.min}</span>}
-                  {!countsHabit(h.id) && <span className="min">No cuenta en el viaje</span>}
+                  {!countsHabit(h.id) && <span className="min">{notYet(h) && h.since ? `Cuenta desde el ${formatLong(h.since)}` : 'No cuenta en el viaje'}</span>}
                 </span>
                 <span className="streak">
                   <b>{currentStreak(state.days, 'core', h.id, s, today)}</b>

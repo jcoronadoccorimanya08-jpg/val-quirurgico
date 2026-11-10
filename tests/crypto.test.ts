@@ -36,7 +36,7 @@ describe('cifrado por sobre', () => {
     const state = initialState('2026-11-08', null);
     const sealed = await encryptJSON(key, state);
     expect(sealed.ct).not.toContain('Bloque profundo');
-    expect(sanitizeState(await decryptJSON(key, sealed))?.settings.core).toHaveLength(4);
+    expect(sanitizeState(await decryptJSON(key, sealed))?.settings.core).toHaveLength(5);
   });
 });
 

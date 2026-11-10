@@ -27,7 +27,11 @@ export const DEFAULT_CORE: Habit[] = [
   },
   { id: 'gym', name: 'Gym', min: 'Día malo: 20 minutos, aunque sea lo básico.' },
   { id: 'estudio', name: 'Bloque profundo sin celular', min: 'Día malo: un bloque de 25 minutos.' },
+  { id: 'lectura30', name: 'Lectura 30 min', min: 'Día malo: 15 minutos.' },
 ];
+
+/** El quinto hábito del núcleo (se agregó con el ciclo en marcha). */
+export const READING_CORE: Habit = { id: 'lectura30', name: 'Lectura 30 min', min: 'Día malo: 15 minutos.' };
 
 export const DEFAULT_EXTRAS: Habit[] = [
   { id: 'anki', name: 'Anki (10–20 min)' },

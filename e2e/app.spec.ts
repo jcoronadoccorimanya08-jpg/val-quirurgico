@@ -34,7 +34,7 @@ async function onboard(page: Page, { exam }: { exam: boolean }) {
   await expect(page.getByRole('heading', { name: 'Día 1 de 90' })).toBeVisible();
 }
 
-const CORE = ['Dormir 23:00 – 6:00', 'Rutina de la mañana', 'Gym', 'Bloque profundo sin celular'];
+const CORE = ['Dormir 23:00 – 6:00', 'Rutina de la mañana', 'Gym', 'Bloque profundo sin celular', 'Lectura 30 min'];
 
 test('crea el patrón, gana el día con 65% y lo protege al recargar', async ({ page }) => {
   await onboard(page, { exam: false });
@@ -73,11 +73,11 @@ test('ánimo del día con un toque e insignias en Premios', async ({ page }) => 
   await expect(page.getByRole('region', { name: 'Insignias' })).toContainText('0 de 6');
 });
 
-test('modo examen: con 3 del núcleo ganas el día', async ({ page }) => {
+test('modo examen: con 4 de los 5 del núcleo ganas el día', async ({ page }) => {
   await onboard(page, { exam: true });
   await expect(page.getByText(/Modo examen hasta el/)).toBeVisible();
-  for (const name of CORE.slice(0, 3)) await page.getByRole('button', { name: new RegExp(`^${name}`) }).click();
-  await expect(page.getByRole('status').filter({ hasText: '¡Día ganado! 75%' })).toBeVisible();
+  for (const name of CORE.slice(0, 4)) await page.getByRole('button', { name: new RegExp(`^${name}`) }).click();
+  await expect(page.getByRole('status').filter({ hasText: '¡Día ganado! 80%' })).toBeVisible();
 });
 
 test('meditar sube a 15 minutos desde la semana 2', async ({ page }) => {
@@ -234,8 +234,8 @@ test('modo viaje: solo cuenta lo que elegiste', async ({ page }) => {
   await page.locator('nav.nav').getByRole('button', { name: 'Hoy' }).click();
   await expect(page.getByLabel('Porcentaje del día')).toContainText('Modo viaje hasta el');
   await expect(page.getByRole('button', { name: /Anki/ })).toContainText('no cuenta');
-  for (const name of CORE.slice(0, 3)) await page.getByRole('button', { name: new RegExp(`^${name}`) }).click();
-  await expect(page.getByRole('status').filter({ hasText: '¡Día ganado! 75%' })).toBeVisible();
+  for (const name of CORE.slice(0, 4)) await page.getByRole('button', { name: new RegExp(`^${name}`) }).click();
+  await expect(page.getByRole('status').filter({ hasText: '¡Día ganado! 80%' })).toBeVisible();
 });
 
 test('historial: al empezar un ciclo nuevo queda el resumen del anterior', async ({ page }) => {

@@ -109,13 +109,19 @@ export function isTripDay(s: Pick<Settings, 'trip'>, date: ISODate): boolean {
  * Hábitos que cuentan ese día: en viaje, los elegidos (también los guardados «para vacaciones», como secundarios);
  * en exámenes, solo el núcleo; si no, todos.
  */
+/** ¿Ese día ya cuenta el hábito? Uno agregado con el ciclo en marcha cuenta desde su «since». */
+export function habitActive(h: Habit, date: ISODate): boolean {
+  return !h.since || date >= h.since;
+}
+
 export function countedHabits(s: Scoring, date: ISODate): { core: Habit[]; extras: Habit[] } {
+  const on = (h: Habit) => habitActive(h, date);
   if (isTripDay(s, date)) {
     const ids = new Set(s.trip!.habits);
-    return { core: s.core.filter((h) => ids.has(h.id)), extras: [...s.extras, ...(s.vacation ?? [])].filter((h) => ids.has(h.id)) };
+    return { core: s.core.filter((h) => ids.has(h.id) && on(h)), extras: [...s.extras, ...(s.vacation ?? [])].filter((h) => ids.has(h.id) && on(h)) };
   }
-  if (isExamDay(s, date)) return { core: s.core, extras: [] };
-  return { core: s.core, extras: s.extras };
+  if (isExamDay(s, date)) return { core: s.core.filter(on), extras: [] };
+  return { core: s.core.filter(on), extras: s.extras.filter(on) };
 }
 
 /** Meta del día (en viaje puede ser otra). */
@@ -310,13 +316,14 @@ export function habitStats(s: Settings, days: Days, today: ISODate, kind: HabitK
   const counted = countedDays(s, days, today);
   const list = kind === 'core' ? s.core : s.extras;
   return list.map((habit) => {
-    const done = counted.filter((d) => isDone(days, d, kind, habit.id)).length;
+    const dates = counted.filter((d) => habitActive(habit, d));
+    const done = dates.filter((d) => isDone(days, d, kind, habit.id)).length;
     return {
       habit,
       kind,
       done,
-      counted: counted.length,
-      pct: counted.length ? Math.round((done / counted.length) * 100) : 0,
+      counted: dates.length,
+      pct: dates.length ? Math.round((done / dates.length) * 100) : 0,
       current: currentStreak(days, kind, habit.id, s, today),
       best: bestStreak(days, kind, habit.id, s, today),
     };
