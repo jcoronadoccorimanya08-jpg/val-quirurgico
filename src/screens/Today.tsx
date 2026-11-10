@@ -4,6 +4,7 @@ import { GoalCard } from '../components/GoalCard';
 import { Icon } from '../components/Icon';
 import { HowItWorks, WhatsNewBanner } from '../components/HowItWorks';
 import { InstallCard } from '../components/InstallCard';
+import { WidgetHint } from '../components/WidgetHint';
 import { MoodPicker } from '../components/MoodPicker';
 import { SectionTitle } from '../components/ui';
 import { WeekCard } from '../components/WeekCard';
@@ -140,6 +141,7 @@ export function TodayScreen({ state, today, hasBio, selected, onSelect, onGoRewa
       <GoalCard state={state} today={today} onOpen={onGoRewards} />
       {!hasBio && <BioPromo />}
       <InstallCard appName="Val Q" dismissible />
+      <WidgetHint />
       <WhatsNewBanner onOpen={() => setHelp(true)} />
       {needsBackup(s, state, today) && (
         <div className="banner">
