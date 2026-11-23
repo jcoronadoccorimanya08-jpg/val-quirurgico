@@ -33,6 +33,7 @@ import {
   toB64,
 } from './crypto';
 import { todayISO, type ISODate } from './dates';
+import { canSetSick } from './engine';
 import { summarizeCycle } from './history';
 import { applyMigrations } from './migrations';
 import { chestFromRoll } from './rewards';
@@ -361,6 +362,34 @@ export const actions = {
       if (flags[id]) delete flags[id];
       else flags[id] = true;
       return { ...st, days: { ...st.days, [date]: { ...prev, [group]: flags, updatedAt: new Date().toISOString() } } };
+    });
+  },
+
+  /** Pone o quita el modo enfermo de un día (máximo 3 seguidos). Tus marcas normales no se borran. */
+  setSick(date: ISODate, on: boolean) {
+    update((st) => {
+      if (on && !canSetSick(st.days, date)) return st;
+      const prev = st.days[date] ?? { core: {}, extra: {} };
+      const next: DayLog = { ...prev, updatedAt: new Date().toISOString() };
+      if (on) {
+        next.sick = true;
+        next.sickDone = prev.sickDone ?? {};
+      } else {
+        delete next.sick;
+        delete next.sickDone;
+      }
+      return { ...st, days: { ...st.days, [date]: next } };
+    });
+  },
+
+  toggleSickItem(date: ISODate, id: string) {
+    update((st) => {
+      const prev = st.days[date];
+      if (!prev?.sick) return st;
+      const done = { ...(prev.sickDone ?? {}) };
+      if (done[id]) delete done[id];
+      else done[id] = true;
+      return { ...st, days: { ...st.days, [date]: { ...prev, sickDone: done, updatedAt: new Date().toISOString() } } };
     });
   },
 

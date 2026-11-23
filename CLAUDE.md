@@ -8,6 +8,7 @@ Es la "App 1". Existe otra app separada y privada (Bitácora); no mezcles códig
 - Interfaz en **español de Bolivia**, con tono directo e informal pero respetuoso. **Sin culpa**: un día fallado es información, no un fracaso.
 - **Núcleo de 5:** dormir, rutina de la mañana (con sus pasos), gym, bloque profundo y lectura 30 min (día malo: 15 min). La versión mínima cuenta como cumplida. Un hábito agregado con el ciclo en marcha lleva `since`: cuenta desde esa fecha y los días anteriores no cambian (`habitActive`).
 - **Porcentaje del día:** `coreWeight` (60 %) repartido en el núcleo y el resto en los secundarios. Se gana el día con `dayGoal` (65 %) o más. Un comodín gana el día.
+- **Modo enfermo** (`DayLog.sick`, `SICK_ITEMS` en `config.ts`): un botón en Hoy, también para días pasados. Ese día solo cuentan 4 mínimos (recuperarte; agradecimiento y afirmaciones + ajedrez, leer, sudoku, podcast o diario; académico 25 min; pantalla limpia) y se gana con los 4. Máximo 3 días seguidos (`canSetSick`). Tus marcas normales no se borran. Sin señales de alarma (pedido de la persona).
 - **Modo examen** (`exam`): esos días solo cuenta el núcleo (cada hábito vale igual).
 - **Modo viaje** (`trip`, opcional): esas fechas solo cuentan los hábitos elegidos, con su propia meta (`trip.dayGoal`); los demás ni suman ni restan. Las fechas se escriben en la app.
 - **Semanas** desde el inicio del ciclo, de 7 días; se gana con `weeklyGoal` (6) días ganados. El tramo final es más corto y su meta baja.

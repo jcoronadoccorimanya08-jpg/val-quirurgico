@@ -1,15 +1,21 @@
-import { useEffect, useState } from 'react';
-import { celebrate } from '../components/Confetti';
-import { GoalCard } from '../components/GoalCard';
-import { Icon } from '../components/Icon';
-import { HowItWorks, WhatsNewBanner } from '../components/HowItWorks';
-import { InstallCard } from '../components/InstallCard';
-import { WidgetHint } from '../components/WidgetHint';
-import { MoodPicker } from '../components/MoodPicker';
-import { SectionTitle } from '../components/ui';
-import { WeekCard } from '../components/WeekCard';
-import { APP_NAME, LEMA } from '../lib/config';
-import { addDays, diffDays, formatLong, localDateOf, type ISODate } from '../lib/dates';
+import { useEffect, useState } from "react";
+import { celebrate } from "../components/Confetti";
+import { GoalCard } from "../components/GoalCard";
+import { Icon } from "../components/Icon";
+import { HowItWorks, WhatsNewBanner } from "../components/HowItWorks";
+import { InstallCard } from "../components/InstallCard";
+import { WidgetHint } from "../components/WidgetHint";
+import { MoodPicker } from "../components/MoodPicker";
+import { SectionTitle } from "../components/ui";
+import { WeekCard } from "../components/WeekCard";
+import { APP_NAME, LEMA, SICK_ITEMS, SICK_MAX_DAYS } from "../lib/config";
+import {
+  addDays,
+  diffDays,
+  formatLong,
+  localDateOf,
+  type ISODate,
+} from "../lib/dates";
 import {
   allSegmentProgress,
   bestStreak,
@@ -18,7 +24,10 @@ import {
   cyclePhase,
   cycleStats,
   dayPct,
+  canSetSick,
   habitActive,
+  isSickDay,
+  sickCount,
   habitLabel,
   isDone,
   isEditable,
@@ -33,12 +42,18 @@ import {
   segmentProgress,
   weights,
   wonStreak,
-} from '../lib/engine';
-import { haptic, toast } from '../lib/feedback';
-import { badgeBlocks, earnedTiers } from '../lib/badges';
-import { wildcards } from '../lib/rewards';
-import { actions, biometricSupport, enableBiometric, getState, lock } from '../lib/store';
-import type { AppState, Habit, HabitKind, Settings } from '../lib/types';
+} from "../lib/engine";
+import { haptic, toast } from "../lib/feedback";
+import { badgeBlocks, earnedTiers } from "../lib/badges";
+import { wildcards } from "../lib/rewards";
+import {
+  actions,
+  biometricSupport,
+  enableBiometric,
+  getState,
+  lock,
+} from "../lib/store";
+import type { AppState, Habit, HabitKind, Settings } from "../lib/types";
 
 interface Props {
   state: AppState;
@@ -50,9 +65,17 @@ interface Props {
   onBackup: () => void;
 }
 
-const BIO_PROMO_KEY = 'val-quirurgico.bio-promo';
+const BIO_PROMO_KEY = "val-quirurgico.bio-promo";
 
-export function TodayScreen({ state, today, hasBio, selected, onSelect, onGoRewards, onBackup }: Props) {
+export function TodayScreen({
+  state,
+  today,
+  hasBio,
+  selected,
+  onSelect,
+  onGoRewards,
+  onBackup,
+}: Props) {
   const s = state.settings;
   const phase = cyclePhase(s, today);
   const stats = cycleStats(s, state.days, today);
@@ -64,13 +87,19 @@ export function TodayScreen({ state, today, hasBio, selected, onSelect, onGoRewa
   const goal = goalOn(s, selected);
   const counted = countedHabits(s, selected);
   // En el viaje también aparecen los hábitos «para vacaciones» que elegiste.
-  const extrasShown = trip ? [...s.extras, ...s.vacation.filter((h) => s.trip!.habits.includes(h.id))] : s.extras;
+  const extrasShown = trip
+    ? [...s.extras, ...s.vacation.filter((h) => s.trip!.habits.includes(h.id))]
+    : s.extras;
   // Un hábito agregado con el ciclo en marcha no cuenta antes de su fecha («since»).
   const notYet = (h: Habit) => !habitActive(h, selected);
   const countsHabit = (id: string) => {
     const h = [...s.core, ...extrasShown].find((x) => x.id === id);
     if (h && notYet(h)) return false;
-    return !trip || counted.core.some((x) => x.id === id) || counted.extras.some((x) => x.id === id);
+    return (
+      !trip ||
+      counted.core.some((x) => x.id === id) ||
+      counted.extras.some((x) => x.id === id)
+    );
   };
   const pct = Math.round(dayPct(s, state.days, selected));
   const won = isWon(s, state.days, selected);
@@ -78,6 +107,11 @@ export function TodayScreen({ state, today, hasBio, selected, onSelect, onGoRewa
   const w = weights(s, selected);
   const wild = wildcards(state, allSegmentProgress(s, state.days, today));
   const usedWildcard = Boolean(state.days[selected]?.wildcard);
+  // Modo enfermo: ese día solo cuentan los mínimos (máximo 3 días seguidos).
+  const sick = isSickDay(state.days, selected);
+  const sickDone = state.days[selected]?.sickDone ?? {};
+  const sickLeft = SICK_ITEMS.length - sickCount(state.days, selected);
+  const canSick = canSetSick(state.days, selected);
   const [help, setHelp] = useState(false);
 
   const onToggle = (kind: HabitKind, id: string) => {
@@ -86,34 +120,59 @@ export function TodayScreen({ state, today, hasBio, selected, onSelect, onGoRewa
     const before = getState();
     if (!before) return;
     const wasWon = isWon(s, before.days, selected);
-    const weekWasWon = seg ? segmentProgress(seg, s, before.days, today).status === 'won' : false;
+    const weekWasWon = seg
+      ? segmentProgress(seg, s, before.days, today).status === "won"
+      : false;
     const tiersBefore = earnedTiers(badgeBlocks(s, before.days, today)).length;
     actions.toggle(selected, kind, id);
     haptic(10);
     const after = getState();
     if (!after) return;
-    const weekNowWon = seg ? segmentProgress(seg, s, after.days, today).status === 'won' : false;
+    const weekNowWon = seg
+      ? segmentProgress(seg, s, after.days, today).status === "won"
+      : false;
     const tiers = earnedTiers(badgeBlocks(s, after.days, today));
     if (tiers.length > tiersBefore) {
-      celebrate('week');
+      celebrate("week");
       haptic([20, 60, 20, 60, 40]);
-      toast(`¡Insignia ${tiers[tiers.length - 1]}! ${s.weeklyGoal * 2} días ganados en 2 semanas.`, 'reward');
+      toast(
+        `¡Insignia ${tiers[tiers.length - 1]}! ${s.weeklyGoal * 2} días ganados en 2 semanas.`,
+        "reward",
+      );
     } else if (seg && !weekWasWon && weekNowWon) {
-      celebrate('week');
+      celebrate("week");
       haptic([20, 60, 20, 60, 40]);
-      toast(`¡Semana ${seg.index} ganada! +${s.fundPerWeek} Bs y un cofre en Premios.`, 'reward');
+      toast(
+        `¡Semana ${seg.index} ganada! +${s.fundPerWeek} Bs y un cofre en Premios.`,
+        "reward",
+      );
     } else if (!wasWon && isWon(s, after.days, selected)) {
-      celebrate('day');
+      celebrate("day");
       haptic([15, 40, 15]);
-      toast(`¡Día ganado! ${Math.round(dayPct(s, after.days, selected))}%`, 'success');
+      toast(
+        `¡Día ganado! ${Math.round(dayPct(s, after.days, selected))}%`,
+        "success",
+      );
     }
   };
 
-  const dayLabel = selected === today ? 'Hoy' : selected === addDays(today, -1) ? 'Ayer' : `Hace ${diffDays(selected, today)} días`;
-  const coreDone = s.core.filter((h) => isDone(state.days, selected, 'core', h.id)).length;
-  const extrasDone = s.extras.filter((h) => isDone(state.days, selected, 'extra', h.id)).length;
+  const dayLabel =
+    selected === today
+      ? "Hoy"
+      : selected === addDays(today, -1)
+        ? "Ayer"
+        : `Hace ${diffDays(selected, today)} días`;
+  const coreDone = s.core.filter((h) =>
+    isDone(state.days, selected, "core", h.id),
+  ).length;
+  const extrasDone = s.extras.filter((h) =>
+    isDone(state.days, selected, "extra", h.id),
+  ).length;
   const countedDone =
-    counted.core.filter((h) => isDone(state.days, selected, 'core', h.id)).length + counted.extras.filter((h) => isDone(state.days, selected, 'extra', h.id)).length;
+    counted.core.filter((h) => isDone(state.days, selected, "core", h.id))
+      .length +
+    counted.extras.filter((h) => isDone(state.days, selected, "extra", h.id))
+      .length;
 
   return (
     <>
@@ -121,25 +180,37 @@ export function TodayScreen({ state, today, hasBio, selected, onSelect, onGoRewa
         <div className="screen-head-text">
           <div className="eyebrow">{APP_NAME}</div>
           <h1 className="title">
-            {phase === 'before' ? 'Tu ciclo está por empezar' : phase === 'finished' ? 'Ciclo completado' : `Día ${stats.dayNumber} de ${s.cycleLength}`}
+            {phase === "before"
+              ? "Tu ciclo está por empezar"
+              : phase === "finished"
+                ? "Ciclo completado"
+                : `Día ${stats.dayNumber} de ${s.cycleLength}`}
           </h1>
           <p className="subtitle">{LEMA}</p>
         </div>
         <div className="head-actions">
-          {phase !== 'before' && (
-            <div className={`streak-pill ${streak >= 7 ? 'hot' : ''}`} title="Días ganados seguidos">
+          {phase !== "before" && (
+            <div
+              className={`streak-pill ${streak >= 7 ? "hot" : ""}`}
+              title="Días ganados seguidos"
+            >
               <Icon name="flame" size={20} />
               <b>{streak}</b>
-              <span>{streak === 1 ? 'día' : 'días'}</span>
+              <span>{streak === 1 ? "día" : "días"}</span>
             </div>
           )}
-          <button type="button" className="icon-btn" aria-label="Bloquear ahora" onClick={lock}>
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label="Bloquear ahora"
+            onClick={lock}
+          >
             <Icon name="lock" />
           </button>
         </div>
       </header>
 
-      {phase !== 'before' && (
+      {phase !== "before" && (
         <div className="cycle-bar" aria-hidden="true">
           <i style={{ width: `${(stats.dayNumber / s.cycleLength) * 100}%` }} />
         </div>
@@ -163,55 +234,99 @@ export function TodayScreen({ state, today, hasBio, selected, onSelect, onGoRewa
         </div>
       )}
 
-      {phase === 'before' ? (
+      {phase === "before" ? (
         <BeforeStart s={s} today={today} onGoRewards={onGoRewards} />
       ) : (
         <>
           <nav className="daynav" aria-label="Día que estás marcando">
-            <button type="button" className="arrow" aria-label="Día anterior" disabled={selected <= s.startDate} onClick={() => onSelect(addDays(selected, -1))}>
+            <button
+              type="button"
+              className="arrow"
+              aria-label="Día anterior"
+              disabled={selected <= s.startDate}
+              onClick={() => onSelect(addDays(selected, -1))}
+            >
               <Icon name="chevronLeft" />
             </button>
             <div className="label">
-              <strong>{phase === 'finished' && selected === playable ? 'Último día' : dayLabel}</strong>
+              <strong>
+                {phase === "finished" && selected === playable
+                  ? "Último día"
+                  : dayLabel}
+              </strong>
               <span>{formatLong(selected)}</span>
             </div>
-            <button type="button" className="arrow" aria-label="Día siguiente" disabled={selected >= playable} onClick={() => onSelect(addDays(selected, 1))}>
+            <button
+              type="button"
+              className="arrow"
+              aria-label="Día siguiente"
+              disabled={selected >= playable}
+              onClick={() => onSelect(addDays(selected, 1))}
+            >
               <Icon name="chevronRight" />
             </button>
           </nav>
           {selected !== playable && (
-            <button type="button" className="back-today" onClick={() => onSelect(playable)}>
+            <button
+              type="button"
+              className="back-today"
+              onClick={() => onSelect(playable)}
+            >
               Volver a hoy
             </button>
           )}
 
-          <section className={`card score ${won ? 'won' : ''}`} aria-label="Porcentaje del día">
+          <section
+            className={`card score ${won ? "won" : ""}`}
+            aria-label="Porcentaje del día"
+          >
             <div className="score-top">
               <div className="score-num">
                 <b>{pct}</b>
                 <span>%</span>
               </div>
               <div className="score-text">
-                <b>{won ? (usedWildcard && pct < goal ? 'Día salvado con comodín' : '¡Día ganado!') : `Meta: ${goal}%`}</b>
-                <span>
+                <b>
                   {won
-                    ? trip
-                      ? `Modo viaje · ${countedDone}/${counted.core.length + counted.extras.length} de los que cuentan`
-                      : `Núcleo ${coreDone}/${s.core.length}${exam ? ' · modo examen' : ` · secundarios ${extrasDone}/${s.extras.length}`}`
-                    : need
-                      ? `Te falta ${describeNeed(need)}.`
-                      : 'Hoy ya no alcanza la meta.'}
+                    ? usedWildcard && pct < goal
+                      ? "Día salvado con comodín"
+                      : "¡Día ganado!"
+                    : sick
+                      ? "Modo enfermo"
+                      : `Meta: ${goal}%`}
+                </b>
+                <span>
+                  {sick
+                    ? won
+                      ? "Cumpliste los 4 mínimos. Ahora a descansar."
+                      : `Te ${sickLeft === 1 ? "falta 1 mínimo" : `faltan ${sickLeft} mínimos`} para ganar el día.`
+                    : won
+                      ? trip
+                        ? `Modo viaje · ${countedDone}/${counted.core.length + counted.extras.length} de los que cuentan`
+                        : `Núcleo ${coreDone}/${s.core.length}${exam ? " · modo examen" : ` · secundarios ${extrasDone}/${s.extras.length}`}`
+                      : need
+                        ? `Te falta ${describeNeed(need)}.`
+                        : "Hoy ya no alcanza la meta."}
                 </span>
               </div>
             </div>
             <div className="score-bar" aria-hidden="true">
               <i style={{ width: `${pct}%` }} />
-              <em style={{ left: `${goal}%` }} />
+              <em style={{ left: `${sick ? 100 : goal}%` }} />
             </div>
-            {exam && <p className="score-note">Modo examen hasta el {formatLong(s.exam!.to)}: solo cuenta el núcleo. Ganas con 3 de 4.</p>}
-            {trip && (
+            {exam && !sick && (
               <p className="score-note">
-                Modo viaje hasta el {formatLong(s.trip!.to)}: cuentan {counted.core.length + counted.extras.length} hábitos y ganas con {goal} %. Los demás ni suman ni restan.
+                Modo examen hasta el {formatLong(s.exam!.to)}: solo cuenta el
+                núcleo. Ganas con{" "}
+                {Math.ceil((goal / 100) * counted.core.length - 1e-9)} de{" "}
+                {counted.core.length}.
+              </p>
+            )}
+            {trip && !sick && (
+              <p className="score-note">
+                Modo viaje hasta el {formatLong(s.trip!.to)}: cuentan{" "}
+                {counted.core.length + counted.extras.length} hábitos y ganas
+                con {goal} %. Los demás ni suman ni restan.
               </p>
             )}
             {editable && !won && wild.available > 0 && (
@@ -221,79 +336,216 @@ export function TodayScreen({ state, today, hasBio, selected, onSelect, onGoRewa
                 style={{ marginTop: 12 }}
                 onClick={() => {
                   actions.useWildcard(selected);
-                  celebrate('day');
-                  toast('Comodín usado: este día cuenta como ganado.', 'reward');
+                  celebrate("day");
+                  toast(
+                    "Comodín usado: este día cuenta como ganado.",
+                    "reward",
+                  );
                 }}
               >
-                <Icon name="sparkles" size={17} /> Usar un comodín (tienes {wild.available})
+                <Icon name="sparkles" size={17} /> Usar un comodín (tienes{" "}
+                {wild.available})
               </button>
             )}
             {editable && usedWildcard && (
-              <button type="button" className="link-btn" onClick={() => actions.removeWildcard(selected)}>
+              <button
+                type="button"
+                className="link-btn"
+                onClick={() => actions.removeWildcard(selected)}
+              >
                 Quitar el comodín de este día
               </button>
             )}
           </section>
 
-          <WeekCard s={s} state={state} date={selected} today={today} onPickDay={onSelect} />
+          {editable && (
+            <button
+              type="button"
+              className={`btn block sm ${sick ? "" : "ghost"}`}
+              style={{ marginBottom: 12 }}
+              aria-pressed={sick}
+              disabled={!sick && !canSick}
+              onClick={() => {
+                actions.setSick(selected, !sick);
+                haptic(10);
+              }}
+            >
+              <Icon name="heart" size={17} />{" "}
+              {sick
+                ? "Ya estoy bien: volver a mis hábitos"
+                : canSick
+                  ? "Estoy enfermo este día"
+                  : `Ya llevas ${SICK_MAX_DAYS} días seguidos en modo enfermo`}
+            </button>
+          )}
 
-          <SectionTitle aside={trip ? `${counted.core.length} cuentan en el viaje` : `${coreDone}/${s.core.length} · ${Math.round(w.core)}% c/u`}>Núcleo</SectionTitle>
-          {s.core.map((h) => {
-            const on = isDone(state.days, selected, 'core', h.id);
-            return (
-              <button key={h.id} type="button" className={`habit ${countsHabit(h.id) ? '' : 'off'}`} aria-pressed={on} disabled={!editable} onClick={() => onToggle('core', h.id)}>
-                <span className="check">
-                  <Icon name="check" size={24} />
-                </span>
-                <span className="body">
-                  <span className="name">{habitLabel(h, s.startDate, selected)}</span>
-                  {h.steps && (
-                    <span className="steps-list">
-                      {h.steps.map((st) => (
-                        <span key={st}>{st}</span>
-                      ))}
+          {sick && (
+            <>
+              <SectionTitle
+                aside={`${SICK_ITEMS.length - sickLeft}/${SICK_ITEMS.length} · todos para ganar`}
+              >
+                Modo enfermo
+              </SectionTitle>
+              {SICK_ITEMS.map((it) => {
+                const on = Boolean(sickDone[it.id]);
+                return (
+                  <button
+                    key={it.id}
+                    type="button"
+                    className="habit"
+                    aria-pressed={on}
+                    disabled={!editable}
+                    onClick={() => {
+                      const was = isWon(s, state.days, selected);
+                      actions.toggleSickItem(selected, it.id);
+                      haptic(8);
+                      const after = getState();
+                      if (
+                        after &&
+                        !was &&
+                        isWon(after.settings, after.days, selected)
+                      ) {
+                        celebrate("day");
+                        toast(
+                          "¡Día ganado en modo enfermo! Cuídate.",
+                          "success",
+                        );
+                      }
+                    }}
+                  >
+                    <span className="check">
+                      <Icon name="check" size={24} />
                     </span>
-                  )}
-                  {h.min && <span className="min">{h.min}</span>}
-                  {!countsHabit(h.id) && <span className="min">{notYet(h) && h.since ? `Cuenta desde el ${formatLong(h.since)}` : 'No cuenta en el viaje'}</span>}
-                </span>
-                <span className="streak">
-                  <b>{currentStreak(state.days, 'core', h.id, s, today)}</b>
-                  <span>racha</span>
-                  <small>mejor {bestStreak(state.days, 'core', h.id, s, today)}</small>
-                </span>
-              </button>
-            );
-          })}
+                    <span className="body">
+                      <span className="name">{it.name}</span>
+                      <span className="min">{it.detail}</span>
+                    </span>
+                  </button>
+                );
+              })}
+              <p className="fine">
+                Tus hábitos de siempre no se borran: este día solo no cuentan.
+                Máximo {SICK_MAX_DAYS} días seguidos.
+              </p>
+            </>
+          )}
 
-          {extrasShown.length > 0 && (
+          <WeekCard
+            s={s}
+            state={state}
+            date={selected}
+            today={today}
+            onPickDay={onSelect}
+          />
+
+          {/* Enfermo: tus hábitos de siempre no se muestran (no cuentan ese día). */}
+          {!sick && (
             <>
               <SectionTitle
                 aside={
                   trip
-                    ? `${counted.extras.length} cuentan en el viaje`
-                    : exam
-                      ? 'no cuentan en exámenes'
-                      : `${extrasDone}/${s.extras.length} · ${w.extra.toFixed(1).replace('.', ',')}% c/u`
+                    ? `${counted.core.length} cuentan en el viaje`
+                    : `${coreDone}/${s.core.length} · ${Math.round(w.core)}% c/u`
                 }
               >
-                Secundarios
+                Núcleo
               </SectionTitle>
-              <div className="list">
-                {extrasShown.map((h) => {
-                  const on = isDone(state.days, selected, 'extra', h.id);
-                  const run = currentStreak(state.days, 'extra', h.id, s, today);
-                  return (
-                    <button key={h.id} type="button" className={`row ${countsHabit(h.id) ? '' : 'off'}`} aria-pressed={on} disabled={!editable} onClick={() => onToggle('extra', h.id)}>
-                      <span className="box">
-                        <Icon name="check" size={16} />
+              {s.core.map((h) => {
+                const on = isDone(state.days, selected, "core", h.id);
+                return (
+                  <button
+                    key={h.id}
+                    type="button"
+                    className={`habit ${countsHabit(h.id) ? "" : "off"}`}
+                    aria-pressed={on}
+                    disabled={!editable}
+                    onClick={() => onToggle("core", h.id)}
+                  >
+                    <span className="check">
+                      <Icon name="check" size={24} />
+                    </span>
+                    <span className="body">
+                      <span className="name">
+                        {habitLabel(h, s.startDate, selected)}
                       </span>
-                      <span className="label">{habitLabel(h, s.startDate, selected)}</span>
-                      <span className="meta">{!countsHabit(h.id) ? 'no cuenta' : run > 0 ? `${run} d` : ''}</span>
-                    </button>
-                  );
-                })}
-              </div>
+                      {h.steps && (
+                        <span className="steps-list">
+                          {h.steps.map((st) => (
+                            <span key={st}>{st}</span>
+                          ))}
+                        </span>
+                      )}
+                      {h.min && <span className="min">{h.min}</span>}
+                      {!countsHabit(h.id) && (
+                        <span className="min">
+                          {notYet(h) && h.since
+                            ? `Cuenta desde el ${formatLong(h.since)}`
+                            : "No cuenta en el viaje"}
+                        </span>
+                      )}
+                    </span>
+                    <span className="streak">
+                      <b>{currentStreak(state.days, "core", h.id, s, today)}</b>
+                      <span>racha</span>
+                      <small>
+                        mejor {bestStreak(state.days, "core", h.id, s, today)}
+                      </small>
+                    </span>
+                  </button>
+                );
+              })}
+
+              {extrasShown.length > 0 && (
+                <>
+                  <SectionTitle
+                    aside={
+                      trip
+                        ? `${counted.extras.length} cuentan en el viaje`
+                        : exam
+                          ? "no cuentan en exámenes"
+                          : `${extrasDone}/${s.extras.length} · ${w.extra.toFixed(1).replace(".", ",")}% c/u`
+                    }
+                  >
+                    Secundarios
+                  </SectionTitle>
+                  <div className="list">
+                    {extrasShown.map((h) => {
+                      const on = isDone(state.days, selected, "extra", h.id);
+                      const run = currentStreak(
+                        state.days,
+                        "extra",
+                        h.id,
+                        s,
+                        today,
+                      );
+                      return (
+                        <button
+                          key={h.id}
+                          type="button"
+                          className={`row ${countsHabit(h.id) ? "" : "off"}`}
+                          aria-pressed={on}
+                          disabled={!editable}
+                          onClick={() => onToggle("extra", h.id)}
+                        >
+                          <span className="box">
+                            <Icon name="check" size={16} />
+                          </span>
+                          <span className="label">
+                            {habitLabel(h, s.startDate, selected)}
+                          </span>
+                          <span className="meta">
+                            {!countsHabit(h.id)
+                              ? "no cuenta"
+                              : run > 0
+                                ? `${run} d`
+                                : ""}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
             </>
           )}
 
@@ -306,7 +558,10 @@ export function TodayScreen({ state, today, hasBio, selected, onSelect, onGoRewa
             }}
           />
 
-          <p className="fine">Márcalo cada noche, antes de las 23:00. Si un día se te pasó, vuelve atrás y corrígelo.</p>
+          <p className="fine">
+            Márcalo cada noche, antes de las 23:00. Si un día se te pasó, vuelve
+            atrás y corrígelo.
+          </p>
         </>
       )}
       {help && <HowItWorks s={s} onClose={() => setHelp(false)} />}
@@ -316,9 +571,11 @@ export function TodayScreen({ state, today, hasBio, selected, onSelect, onGoRewa
 
 function describeNeed(n: { core: number; extra: number }): string {
   const parts: string[] = [];
-  if (n.core) parts.push(n.core === 1 ? '1 del núcleo' : `${n.core} del núcleo`);
-  if (n.extra) parts.push(n.extra === 1 ? '1 secundario' : `${n.extra} secundarios`);
-  return parts.join(' y ');
+  if (n.core)
+    parts.push(n.core === 1 ? "1 del núcleo" : `${n.core} del núcleo`);
+  if (n.extra)
+    parts.push(n.extra === 1 ? "1 secundario" : `${n.extra} secundarios`);
+  return parts.join(" y ");
 }
 
 function needsBackup(s: Settings, state: AppState, today: ISODate): boolean {
@@ -329,10 +586,10 @@ function needsBackup(s: Settings, state: AppState, today: ISODate): boolean {
 }
 
 function BioPromo() {
-  const [support, setSupport] = useState<'yes' | 'maybe' | 'no' | null>(null);
+  const [support, setSupport] = useState<"yes" | "maybe" | "no" | null>(null);
   const [hidden, setHidden] = useState(() => {
     try {
-      return localStorage.getItem(BIO_PROMO_KEY) === 'hide';
+      return localStorage.getItem(BIO_PROMO_KEY) === "hide";
     } catch {
       return false;
     }
@@ -340,10 +597,10 @@ function BioPromo() {
   useEffect(() => {
     void biometricSupport().then(setSupport);
   }, []);
-  if (hidden || !support || support === 'no') return null;
+  if (hidden || !support || support === "no") return null;
   const hide = () => {
     try {
-      localStorage.setItem(BIO_PROMO_KEY, 'hide');
+      localStorage.setItem(BIO_PROMO_KEY, "hide");
     } catch {
       /* nada */
     }
@@ -362,32 +619,56 @@ function BioPromo() {
         onClick={async () => {
           try {
             await enableBiometric();
-            toast('Huella activada.', 'success');
+            toast("Huella activada.", "success");
           } catch (e) {
-            const m = e instanceof Error ? e.message : '';
-            if (m === 'NOPRF') {
-              toast('Tu teléfono no permite usar la huella aquí. Sigue con tu patrón.', 'error');
+            const m = e instanceof Error ? e.message : "";
+            if (m === "NOPRF") {
+              toast(
+                "Tu teléfono no permite usar la huella aquí. Sigue con tu patrón.",
+                "error",
+              );
               hide();
-            } else toast('No se activó la huella.', 'error');
+            } else toast("No se activó la huella.", "error");
           }
         }}
       >
         Activar
       </button>
-      <button type="button" className="icon-btn" aria-label="Ahora no" onClick={hide}>
+      <button
+        type="button"
+        className="icon-btn"
+        aria-label="Ahora no"
+        onClick={hide}
+      >
         <Icon name="x" size={18} />
       </button>
     </div>
   );
 }
 
-function BeforeStart({ s, today, onGoRewards }: { s: Settings; today: ISODate; onGoRewards: () => void }) {
+function BeforeStart({
+  s,
+  today,
+  onGoRewards,
+}: {
+  s: Settings;
+  today: ISODate;
+  onGoRewards: () => void;
+}) {
   const left = diffDays(today, s.startDate);
   return (
     <section className="card">
       <div className="card-title">Empieza el {formatLong(s.startDate)}</div>
-      <p>{left === 1 ? 'Falta 1 día.' : `Faltan ${left} días.`} Revisa tus premios: cada semana ganada suma {s.fundPerWeek} Bs a tu fondo.</p>
-      <button type="button" className="btn primary block" style={{ marginTop: 14 }} onClick={onGoRewards}>
+      <p>
+        {left === 1 ? "Falta 1 día." : `Faltan ${left} días.`} Revisa tus
+        premios: cada semana ganada suma {s.fundPerWeek} Bs a tu fondo.
+      </p>
+      <button
+        type="button"
+        className="btn primary block"
+        style={{ marginTop: 14 }}
+        onClick={onGoRewards}
+      >
         <Icon name="gift" size={18} /> Ver mis premios
       </button>
       <button
@@ -396,7 +677,7 @@ function BeforeStart({ s, today, onGoRewards }: { s: Settings; today: ISODate; o
         style={{ marginTop: 8 }}
         onClick={() => {
           actions.setStartDate(today);
-          toast('Tu ciclo empieza hoy.', 'success');
+          toast("Tu ciclo empieza hoy.", "success");
         }}
       >
         <Icon name="calendar" size={18} /> Prefiero empezar hoy

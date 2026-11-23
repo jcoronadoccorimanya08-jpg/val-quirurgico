@@ -1,5 +1,5 @@
 /** Validación del estado (al descifrar y al restaurar respaldos). */
-import { CYCLE_LENGTH, DEFAULT_CORE_WEIGHT, DEFAULT_DAY_GOAL, DEFAULT_FUND_PER_WEEK } from './config';
+import { CYCLE_LENGTH, DEFAULT_CORE_WEIGHT, DEFAULT_DAY_GOAL, DEFAULT_FUND_PER_WEEK, SICK_ITEMS } from './config';
 import { isValidISODate } from './dates';
 import { isAccent, isTextSize, isTheme } from './look';
 import type { AppState, CatalogItem, Chest, ChestOutcome, CycleSummary, DayLog, Habit, Mood, Redemption, Settings, SharedGrand, SpecialPrize, Theme, TripMode } from './types';
@@ -161,6 +161,12 @@ export function sanitizeState(raw: unknown): AppState | null {
       if (!isValidISODate(date) || !isObj(log)) continue;
       const day: DayLog = { core: flags(log.core), extra: flags(log.extra) };
       if (log.wildcard === true) day.wildcard = true;
+      if (log.sick === true) {
+        day.sick = true;
+        const done = flags(log.sickDone);
+        const ids = new Set<string>(SICK_ITEMS.map((x) => x.id));
+        day.sickDone = Object.fromEntries(Object.keys(done).filter((k) => ids.has(k)).map((k) => [k, true]));
+      }
       if (typeof log.mood === 'number' && Number.isInteger(log.mood) && log.mood >= 1 && log.mood <= 5) day.mood = log.mood as Mood;
       const u = str(log.updatedAt, 40);
       if (u) day.updatedAt = u;

@@ -111,6 +111,9 @@ export interface DayLog {
   extra: Record<string, boolean>;
   /** Día salvado con un comodín: cuenta como ganado. */
   wildcard?: boolean;
+  /** Día en modo enfermo: solo cuentan los mínimos de SICK_ITEMS (en sickDone). */
+  sick?: boolean;
+  sickDone?: Record<string, boolean>;
   mood?: Mood;
   updatedAt?: string;
 }

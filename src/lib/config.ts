@@ -30,6 +30,27 @@ export const DEFAULT_CORE: Habit[] = [
   { id: 'lectura30', name: 'Lectura 30 min', min: 'Día malo: 15 minutos.' },
 ];
 
+/** Modo enfermo: el día se reduce a estos mínimos; si haces todos, el día se gana. */
+export const SICK_ITEMS = [
+  { id: 'recuperar', name: 'Recuperarte', short: 'Recuperar', detail: 'Dormir más, 2 a 3 litros de líquido y comer aunque sea sopa.' },
+  {
+    id: 'mente',
+    name: 'Agradecimiento y afirmaciones + mente',
+    short: 'Mente',
+    detail: 'Sí o sí tus agradecimientos y afirmaciones. Y una de estas: ajedrez, leer 15 min, un sudoku, un podcast o tu diario.',
+  },
+  { id: 'academico', name: 'Académico 25 min', short: 'Académico', detail: 'Algo ligero: el audio de la clase, los apuntes de un compañero o Anki.' },
+  {
+    id: 'pantalla',
+    name: 'Pantalla limpia',
+    short: 'Pantalla',
+    detail: 'Márcalo en la noche si hoy no entraste a TikTok, Instagram, Facebook ni Free Fire. WhatsApp y YouTube para estudiar sí.',
+  },
+] as const;
+
+/** Máximo de días seguidos en modo enfermo (para que no se vuelva excusa). */
+export const SICK_MAX_DAYS = 3;
+
 /** El quinto hábito del núcleo (se agregó con el ciclo en marcha). */
 export const READING_CORE: Habit = { id: 'lectura30', name: 'Lectura 30 min', min: 'Día malo: 15 minutos.' };
 

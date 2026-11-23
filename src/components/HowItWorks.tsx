@@ -8,9 +8,9 @@ import { Icon } from './Icon';
 export const WHATS_NEW = {
   version: __APP_VERSION__,
   items: [
-    'Lectura 30 min ahora es parte del núcleo (día malo: 15 min) y vale lo mismo que los otros.',
-    'Cuenta desde hoy: tus días anteriores no cambian. En el viaje también cuenta.',
-    'En el widget de Rachas aparece con los otros 4 del núcleo.',
+    'Modo enfermo: un botón en Hoy. Ese día solo cuentan 4 mínimos y con los 4 ganas el día.',
+    'Recuperarte, agradecimiento y afirmaciones + mente, 25 min académico y pantalla limpia.',
+    'Sirve también para días pasados y llega hasta 3 días seguidos.',
   ],
 };
 

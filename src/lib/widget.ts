@@ -5,6 +5,7 @@
  */
 import { useSyncExternalStore } from 'react';
 import { badgeBlocks, earnedTiers } from './badges';
+import { SICK_ITEMS } from './config';
 import { addDays, diffDays, maxDate, minDate, rangeDates, type ISODate } from './dates';
 import {
   buildSegments,
@@ -15,6 +16,7 @@ import {
   dayPct,
   goalOn,
   isDone,
+  isSickDay,
   isWon,
   lastPlayableDay,
   neededToWin,
@@ -125,6 +127,13 @@ export function buildWidgetFrame(state: AppState, today: ISODate): WidgetFrame {
     phrase: streakPhrase({ started: phase !== 'before', streak, todayWon, yesterdayWon: yesterday >= s.startDate && isWon(s, state.days, yesterday), dayNumber: day }),
     badges: earnedTiers(badgeBlocks(s, state.days, today)).length,
   };
+  // Enfermo: el widget muestra los mínimos del día en vez del núcleo.
+  if (active && isSickDay(state.days, today)) {
+    const done = state.days[today]?.sickDone ?? {};
+    frame.core = SICK_ITEMS.map((x) => ({ n: x.short, done: Boolean(done[x.id]), counts: true }));
+    frame.left = SICK_ITEMS.filter((x) => !done[x.id]).length;
+    frame.phrase = todayWon ? '¡Día ganado! Ahora descansa' : 'Modo enfermo: cuídate';
+  }
   const sp = s.special;
   if (sp && !sp.claimedAt && sp.date && today <= sp.date) frame.prize = { name: sp.name, daysLeft: diffDays(today, sp.date) };
   else if (s.grand) frame.prize = { name: s.grand.name, daysLeft: Math.max(0, diffDays(today, cycleEnd(s))) };

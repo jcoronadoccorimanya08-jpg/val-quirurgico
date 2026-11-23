@@ -10,6 +10,7 @@
  *   El último tramo es más corto y su meta baja en lo que le falta para 7.
  */
 import { addDays, diffDays, maxDate, minDate, rangeDates, type ISODate } from './dates';
+import { SICK_ITEMS, SICK_MAX_DAYS } from './config';
 import type { DayLog, Habit, HabitKind, Settings } from './types';
 
 export type Days = Record<ISODate, DayLog>;
@@ -137,14 +138,43 @@ export function weights(s: Scoring, date: ISODate): { core: number; extra: numbe
   return { core: s.coreWeight / core.length, extra: (100 - s.coreWeight) / extras.length };
 }
 
+// ---------- Modo enfermo ----------
+
+export function isSickDay(days: Days, date: ISODate): boolean {
+  return Boolean(days[date]?.sick);
+}
+
+/** Cuántos mínimos del modo enfermo hiciste ese día. */
+export function sickCount(days: Days, date: ISODate): number {
+  const done = days[date]?.sickDone ?? {};
+  return SICK_ITEMS.filter((x) => done[x.id]).length;
+}
+
+/** Días seguidos en modo enfermo que quedarían si ese día también lo fuera (contando los de antes y después). */
+export function sickRunWith(days: Days, date: ISODate): number {
+  let n = 1;
+  for (let d = addDays(date, -1); isSickDay(days, d); d = addDays(d, -1)) n++;
+  for (let d = addDays(date, 1); isSickDay(days, d); d = addDays(d, 1)) n++;
+  return n;
+}
+
+/** ¿Se puede poner ese día en modo enfermo? No más de SICK_MAX_DAYS seguidos. */
+export function canSetSick(days: Days, date: ISODate): boolean {
+  return isSickDay(days, date) || sickRunWith(days, date) <= SICK_MAX_DAYS;
+}
+
 export function dayPct(s: Scoring, days: Days, date: ISODate): number {
+  if (isSickDay(days, date)) return (sickCount(days, date) / SICK_ITEMS.length) * 100;
   const w = weights(s, date);
   const { core, extras } = countedHabits(s, date);
   return Math.min(100, coreCount(days, date, core) * w.core + extraCount(days, date, extras) * w.extra);
 }
 
 export function isWon(s: Scoring, days: Days, date: ISODate): boolean {
-  return Boolean(days[date]?.wildcard) || dayPct(s, days, date) >= goalOn(s, date) - EPS;
+  if (days[date]?.wildcard) return true;
+  // Enfermo: se gana solo con todos los mínimos.
+  if (isSickDay(days, date)) return sickCount(days, date) === SICK_ITEMS.length;
+  return dayPct(s, days, date) >= goalOn(s, date) - EPS;
 }
 
 /**
@@ -153,6 +183,7 @@ export function isWon(s: Scoring, days: Days, date: ISODate): boolean {
  */
 export function neededToWin(s: Scoring, days: Days, date: ISODate): { core: number; extra: number } | null {
   if (isWon(s, days, date)) return { core: 0, extra: 0 };
+  if (isSickDay(days, date)) return { core: SICK_ITEMS.length - sickCount(days, date), extra: 0 };
   const w = weights(s, date);
   const pct = dayPct(s, days, date);
   const goal = goalOn(s, date);
