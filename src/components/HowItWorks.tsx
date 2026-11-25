@@ -8,9 +8,8 @@ import { Icon } from './Icon';
 export const WHATS_NEW = {
   version: __APP_VERSION__,
   items: [
-    'Modo enfermo: un botón en Hoy. Ese día solo cuentan 4 mínimos y con los 4 ganas el día.',
-    'Recuperarte, agradecimiento y afirmaciones + mente, 25 min académico y pantalla limpia.',
-    'Sirve también para días pasados y llega hasta 3 días seguidos.',
+    'Celular ↔ tablet: en Ajustes, «Pasar a mi otro dispositivo» (con Quick Share) y en el otro «Recibir»: queda igual.',
+    'Usa el mismo patrón en tus dos dispositivos para que sea directo.',
   ],
 };
 
