@@ -98,6 +98,8 @@ export interface Settings {
   accent?: Accent;
   textSize?: TextSize;
   /** Minutos fuera de la app antes de pedir el patrón otra vez (0 = al salir). */
+  /** Código de sincronización celular ↔ tablet (solo dentro de tus datos cifrados). */
+  syncCode?: string;
   autoLockMinutes: number;
   createdAt: string;
   lastBackupAt?: string;

@@ -105,6 +105,7 @@ function settings(v: unknown): Settings | null {
     trip: trip(v.trip),
     grand: grand(v.grand),
     theme,
+    ...(typeof v.syncCode === 'string' && /^[a-z0-9-]{16,120}$/.test(v.syncCode) ? { syncCode: v.syncCode } : {}),
     autoLockMinutes: Math.round(num(v.autoLockMinutes, 0, 60, 1)),
     createdAt: str(v.createdAt, 40) ?? new Date().toISOString(),
   };
