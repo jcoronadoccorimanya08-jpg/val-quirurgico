@@ -87,6 +87,8 @@ export interface Settings {
   trip?: TripMode | null;
   /** Cambios de una sola vez que ya se aplicaron a tus datos (para no repetirlos). */
   applied?: string[];
+  /** Días en que Focus Flow ya marcó tu «Bloque profundo» (para no volver a marcarlo si lo quitas). */
+  focusApplied?: ISODate[];
   /** Bs que suma al fondo cada semana ganada. */
   fundPerWeek: number;
   catalog: CatalogItem[];

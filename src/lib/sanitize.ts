@@ -117,6 +117,10 @@ function settings(v: unknown): Settings | null {
     const applied = v.applied.map((x) => str(x, 40)).filter((x): x is string => Boolean(x)).slice(0, 20);
     if (applied.length) s.applied = applied;
   }
+  if (Array.isArray(v.focusApplied)) {
+    const fa = v.focusApplied.filter((x): x is string => isValidISODate(x)).slice(-60);
+    if (fa.length) s.focusApplied = fa;
+  }
   return s;
 }
 

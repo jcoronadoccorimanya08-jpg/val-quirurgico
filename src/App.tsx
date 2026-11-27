@@ -8,6 +8,7 @@ import { canShareFiles, downloadBackupText, serializeBackup, shareBackupText } f
 import { allSegmentProgress, lastPlayableDay, weeklyPcts } from './lib/engine';
 import { toast } from './lib/feedback';
 import { useMediaQuery, useToday } from './lib/hooks';
+import { focusDatesToMark, readFocusDays } from './lib/focus';
 import { applyLook, readLook, type Look } from './lib/look';
 import { pendingChests, specialStatus } from './lib/rewards';
 import { actions, currentBackup, getState, lock, onSaveError, useStore } from './lib/store';
@@ -87,6 +88,20 @@ export function App() {
   useEffect(() => {
     if (phase === 'unlocked') void sync.syncNow();
   }, [phase]);
+
+  // Focus Flow (en este teléfono): si estudiaste un bloque de 25 min o más, tu «Bloque profundo» se marca solo.
+  useEffect(() => {
+    if (phase !== 'unlocked') return;
+    const apply = () => {
+      const st = getState();
+      if (!st || document.visibilityState !== 'visible') return;
+      const n = actions.markFromFocus(focusDatesToMark(st, readFocusDays(), today));
+      if (n) toast(n === 1 ? '✅ Bloque profundo marcado desde Focus Flow' : `✅ Bloque profundo marcado en ${n} días desde Focus Flow`, 'reward');
+    };
+    apply();
+    document.addEventListener('visibilitychange', apply);
+    return () => document.removeEventListener('visibilitychange', apply);
+  }, [phase, today]);
 
   useEffect(() => {
     window.scrollTo({ top: 0 });

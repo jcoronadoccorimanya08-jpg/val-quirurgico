@@ -8,9 +8,7 @@ import { Icon } from './Icon';
 export const WHATS_NEW = {
   version: __APP_VERSION__,
   items: [
-    'Sincronización más segura: si cambias algo en el celular y en la tablet a la vez, ahora se juntan los dos cambios en vez de pisarse.',
-    'Al vincular un dispositivo que ya tiene datos, te pregunta cuáles se quedan, y guarda una copia para «Deshacer».',
-    'Si escribes mal el código, te avisa. Y recuperar un respaldo ya no apaga la sincronización.',
+    '✅ Con Focus Flow (tu app de estudio): si estudias un bloque de 25 min o más, tu «Bloque profundo» se marca solo. Abre Focus Flow en este teléfono para que se pase.',
   ],
 };
 

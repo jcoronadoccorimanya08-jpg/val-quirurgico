@@ -396,6 +396,21 @@ function archive(st: AppState): AppState {
 }
 
 export const actions = {
+  /** Focus Flow: marca tu «Bloque profundo» en esos días (sin tocar lo demás). Devuelve cuántos marcó. */
+  markFromFocus(dates: ISODate[]): number {
+    if (!dates.length || snap.test) return 0;
+    update((st) => {
+      const days = { ...st.days };
+      for (const d of dates) {
+        const prev = days[d] ?? { core: {}, extra: {} };
+        days[d] = { ...prev, core: { ...prev.core, estudio: true }, updatedAt: new Date().toISOString() };
+      }
+      const focusApplied = [...(st.settings.focusApplied ?? []), ...dates].slice(-60);
+      return { ...st, days, settings: { ...st.settings, focusApplied } };
+    });
+    return dates.length;
+  },
+
   toggle(date: ISODate, kind: HabitKind, id: string) {
     update((st) => {
       const prev = st.days[date] ?? { core: {}, extra: {} };
